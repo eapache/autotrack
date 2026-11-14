@@ -62,8 +62,8 @@ synthesis. `--missing-lyric doo` supplies a fallback for phrases with no lyrics.
 
 ### Verses and repeats
 
-The prototype read the first lyric entry on each note. The importer now unfolds
-the performance and selects successive lyric verses as a passage repeats.
+The importer unfolds the performance and selects successive lyric verses as a
+passage repeats.
 A passage with only one lyric line, such as a shared chorus or a part singing
 “doo,” keeps that line on every pass. Ties and melismas continue the selected verse.
 
@@ -144,8 +144,8 @@ timing unchanged:
 | high | 40 | 10 |
 | max | 80 | 5 |
 
-The former `--speedup` argument is replaced by these presets. More effort costs
-more time; it does not correct notation or guarantee better pronunciation.
+More effort costs more time; it does not correct notation or guarantee better
+pronunciation.
 
 All four parts use the same selected `--style`: fresh, disco, electric, vinyl,
 cetera, mystic, or falsetto. Further controls are grouped under Advanced settings
@@ -158,9 +158,7 @@ in `autotrack run --help`:
 - `--velocity N`: phoneme speed conditioning, 0.5–2; preserves score timing.
 - `--seed N`: default 42; results may vary between runtime versions/hardware.
 
-Pitch smoothing and vibrato are currently fixed. Model depth stays at 400.
-CUDA support was removed; the [historical benchmarks](performance.md) explain
-why CPU and the thread cap were chosen.
+Pitch smoothing and vibrato are fixed. Model depth is 400. Inference runs on CPU.
 
 ## Installation and diagnostics
 

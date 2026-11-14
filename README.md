@@ -75,7 +75,10 @@ you no longer need the intermediates.
 
 ## Development
 
+Use an editable install so the `autotrack` command picks up source changes:
+
 ```sh
+python -m pip install -e .
 python -m unittest discover -s tests -v
 ```
 
@@ -84,7 +87,6 @@ Tests need FFmpeg but do not download a voice. For pinned dependencies, install
 
 - [Advanced options, score preparation, and working files](docs/advanced.md)
 - [Editable score format](docs/score-format.md)
-- [CPU benchmarks and thread settings](docs/performance.md)
 
 The code is MIT-licensed. The separately downloaded TIGER voice is by
 **tigermeat / neutrogic**; commercial use requires their permission. See the
