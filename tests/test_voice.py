@@ -5,8 +5,8 @@ import unittest
 from unittest.mock import patch
 import zipfile
 
-from learning_tracks.voice import install
-from learning_tracks.render import digest_file
+from autotrack.voice import install
+from autotrack.render import digest_file
 
 
 class VoiceInstallTests(unittest.TestCase):
@@ -27,7 +27,7 @@ class VoiceInstallTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
             archive = self.archive(root)
-            with patch('learning_tracks.voice.SHA256', digest_file(archive)):
+            with patch('autotrack.voice.SHA256', digest_file(archive)):
                 install(root / 'model', archive)
             self.assertTrue((root / 'model/extra/LICENSE.md').is_file())
             self.assertTrue((root / 'model/dsacoustic/phonemes.txt').is_file())
@@ -39,7 +39,7 @@ class VoiceInstallTests(unittest.TestCase):
                 root = Path(temp)
                 archive = self.archive(root, unsafe)
                 checksum = digest_file(archive) if unsafe else 'bad hash'
-                with patch('learning_tracks.voice.SHA256', checksum):
+                with patch('autotrack.voice.SHA256', checksum):
                     with self.assertRaises(ValueError):
                         install(root / 'model', archive)
                 self.assertEqual(list(root.iterdir()), [archive])

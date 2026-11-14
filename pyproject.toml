@@ -17,7 +17,7 @@ Repository = "https://github.com/eapache/autotrack"
 Issues = "https://github.com/eapache/autotrack/issues"
 
 [project.scripts]
-autotrack = "learning_tracks.__main__:main"
+autotrack = "autotrack.__main__:main"
 
 [tool.setuptools.packages.find]
-include = ["learning_tracks*"]
+include = ["autotrack*"]

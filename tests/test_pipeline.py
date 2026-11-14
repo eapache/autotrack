@@ -7,10 +7,10 @@ import shutil
 import subprocess
 from pathlib import Path
 import numpy as np
-from learning_tracks.score import PARTS, Timeline, validate
-from learning_tracks.render import frame_durations
-from learning_tracks.mix import split_mix, export
-from learning_tracks.musicxml import read, describe, import_score
+from autotrack.score import PARTS, Timeline, validate
+from autotrack.render import frame_durations
+from autotrack.mix import split_mix, export
+from autotrack.musicxml import read, describe, import_score
 
 
 def simple_score():
@@ -106,7 +106,7 @@ class MixTests(unittest.TestCase):
             export('/unused', '/unused', simple_score())
 
     def test_pitch_validation(self):
-        from learning_tracks.mix import pitch_tone
+        from autotrack.mix import pitch_tone
         for seconds in (-1, float('nan'), 11):
             with self.assertRaises(ValueError):
                 pitch_tone(60, seconds)

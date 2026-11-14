@@ -8,7 +8,7 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-from learning_tracks.__main__ import main
+from autotrack.__main__ import main
 from test_pipeline import simple_score
 
 
@@ -19,7 +19,7 @@ class CLITests(unittest.TestCase):
             score = root / 'song.json'
             score.write_text(json.dumps(simple_score()))
             out = root / 'output'
-            with patch('learning_tracks.render.Renderer') as renderer, patch('shutil.which', return_value='/ffmpeg'):
+            with patch('autotrack.render.Renderer') as renderer, patch('shutil.which', return_value='/ffmpeg'):
                 renderer.return_value.part.side_effect = ValueError('injected failure')
                 with self.assertRaises(SystemExit) as error:
                     main(['run', str(score), '--pitch', 'Bb3', '--out', str(out)])
@@ -37,7 +37,7 @@ class CLITests(unittest.TestCase):
             out.mkdir()
             sentinel = out / 'keep.txt'
             sentinel.write_text('keep')
-            with patch('shutil.which', return_value='/ffmpeg'), patch('learning_tracks.render.Renderer') as renderer:
+            with patch('shutil.which', return_value='/ffmpeg'), patch('autotrack.render.Renderer') as renderer:
                 with self.assertRaises(SystemExit):
                     main(['run', '/nonexistent', '--out', str(out)])
                 renderer.assert_not_called()
@@ -50,7 +50,7 @@ class CLITests(unittest.TestCase):
             for options in ([], ['--pitch', 'C'], ['--pitch', 'A9'],
                             ['--pitch', 'C4', '--pitch-seconds', 'nan'],
                             ['--pitch', 'C4', '--dominance-db', 'nan']):
-                with self.subTest(options=options), patch('shutil.which', return_value='/ffmpeg'), patch('learning_tracks.render.Renderer') as renderer:
+                with self.subTest(options=options), patch('shutil.which', return_value='/ffmpeg'), patch('autotrack.render.Renderer') as renderer:
                     with self.assertRaises(SystemExit):
                         main(['run', str(score), '--out', str(Path(temp) / 'out'), *options])
                     renderer.assert_not_called()
@@ -62,7 +62,7 @@ class CLITests(unittest.TestCase):
             score.write_text(json.dumps(simple_score()))
             work = root / 'scratch'
             for effort in ('low', 'standard', 'high', 'max'):
-                with patch('learning_tracks.render.Renderer') as renderer, patch('shutil.which', return_value='/ffmpeg'):
+                with patch('autotrack.render.Renderer') as renderer, patch('shutil.which', return_value='/ffmpeg'):
                     renderer.return_value.part.side_effect = ValueError('injected failure')
                     with self.assertRaises(SystemExit):
                         main(['run', str(score), '--pitch', 'C4', '--out', str(root / 'out'),
@@ -77,7 +77,7 @@ class CLITests(unittest.TestCase):
             score = root / 'song.json'
             score.write_text(json.dumps(simple_score()))
             for work in (root, root / 'out', root / 'out/work'):
-                with patch('shutil.which', return_value='/ffmpeg'), patch('learning_tracks.render.Renderer') as renderer:
+                with patch('shutil.which', return_value='/ffmpeg'), patch('autotrack.render.Renderer') as renderer:
                     with self.assertRaises(SystemExit):
                         main(['run', str(score), '--pitch', 'C4', '--out', str(root / 'out'), '--work-dir', str(work)])
                     renderer.assert_not_called()
@@ -88,7 +88,7 @@ class CLITests(unittest.TestCase):
             root = Path(temp)
             score = root / 'song.json'
             score.write_text(json.dumps(simple_score()))
-            with patch('learning_tracks.render.Renderer') as renderer:
+            with patch('autotrack.render.Renderer') as renderer:
                 instance = renderer.return_value
                 instance.part.side_effect = lambda groups, length, part: .1 * np.sin(2 * np.pi * 220 * np.arange(length) / 44100)
                 instance.fingerprint, instance.settings = {}, {'effort': 'standard'}
@@ -109,7 +109,7 @@ class CLITests(unittest.TestCase):
             root = Path(temp)
             score = root / 'song.json'
             score.write_text(json.dumps(simple_score()))
-            with patch('learning_tracks.render.Renderer') as renderer, patch('shutil.which', return_value='/ffmpeg'):
+            with patch('autotrack.render.Renderer') as renderer, patch('shutil.which', return_value='/ffmpeg'):
                 renderer.return_value.part.side_effect = [np.zeros(44100), ValueError('second part failed')]
                 with self.assertRaises(SystemExit):
                     main(['run', str(score), '--pitch', 'C4', '--out', str(root / 'out')])
