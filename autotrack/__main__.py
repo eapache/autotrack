@@ -60,19 +60,39 @@ def record_failure(folder, error):
 
 
 def main(argv=None):
-    parser = argparse.ArgumentParser(description='Offline MusicXML → four sung learning MP3s and a full mix')
+    parser = argparse.ArgumentParser(
+        description='Turn sheet music into sung barbershop learning tracks: '
+                    'tenor, lead, baritone, bass, and a full mix.',
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog='''Getting started:
+  %(prog)s download-voice       Set up the singing voice once (needs internet)
+  %(prog)s run my-song.mxl      Make five MP3s in output/my-song/
+
+Export your sheet music as MusicXML (.musicxml or .mxl) from your notation
+editor. After voice setup, you can make tracks offline.
+
+Advanced commands:
+  inspect          Show the parts and note ranges in a MusicXML file
+  import-xml       Save MusicXML as an editable JSON score
+  validate         Check an editable JSON score for errors
+  doctor           Check installed audio tools
+
+Use %(prog)s COMMAND --help for more options.''')
     parser.add_argument('--version', action='version', version=f'%(prog)s {__version__}')
-    sub = parser.add_subparsers(dest='command', required=True)
-    inspect = sub.add_parser('inspect', help='List MusicXML parts/voices and pitch ranges')
+    sub = parser.add_subparsers(dest='command', required=True, title='Main commands', metavar='COMMAND')
+    # Advanced commands are listed in the epilog, below the everyday workflow.
+    inspect = sub.add_parser('inspect', description='Show the parts and note ranges in a MusicXML file')
     inspect.add_argument('score', type=Path)
-    imp = sub.add_parser('import-xml', help='Import MusicXML into editable, validated score JSON')
+    imp = sub.add_parser('import-xml', description='Save MusicXML as an editable, validated JSON score')
     imp.add_argument('score', type=Path)
     imp.add_argument('--out', required=True, type=Path)
     import_options(imp)
-    check = sub.add_parser('validate', help='Validate structured score JSON without loading a voice model')
+    check = sub.add_parser('validate', description='Check an editable JSON score for errors')
     check.add_argument('score', type=Path)
-    run = sub.add_parser('run', help='Render five MP3s with a tonic pitch and count-in')
-    run.add_argument('score', type=Path)
+    run = sub.add_parser('run', help='Make sung learning tracks from your sheet music',
+                         description='Make five MP3s: tenor, lead, baritone, bass, and a full mix, '
+                                     'with an opening pitch and count-in.')
+    run.add_argument('score', type=Path, help='Your MusicXML file (.musicxml or .mxl), or an editable JSON score')
     run.add_argument('--out', type=Path, help='Folder for finished tracks (default: output/SONG)')
     advanced = run.add_argument_group('Advanced settings')
     advanced.add_argument('--voice', type=Path, default=DATA / 'tiger')
@@ -88,10 +108,13 @@ def main(argv=None):
     advanced.add_argument('--velocity', type=float, default=1., help='Model phoneme speed conditioning, 0.5 to 2; preserves score timing')
     import_options(run.add_argument_group('Score settings'))
     mixing_options(run)
-    voice = sub.add_parser('download-voice', help='Install the pinned TIGER voice model (one-time network access)')
-    voice.add_argument('destination', type=Path, nargs='?', default=DATA / 'tiger')
-    voice.add_argument('--archive', type=Path, help='Use an already downloaded official zip')
-    sub.add_parser('doctor', help='Show runtime and FFmpeg availability')
+    voice = sub.add_parser('download-voice', help='Set up the singing voice (only needed once)',
+                           description='Download and install the singing voice (about 540 MB). '
+                                       'Needs internet once; after setup, you can make tracks offline.')
+    voice.add_argument('destination', type=Path, nargs='?', default=DATA / 'tiger',
+                       help='Optional folder for the voice; normally chosen automatically')
+    voice.add_argument('--archive', type=Path, help='Install from an official ZIP file you already downloaded')
+    sub.add_parser('doctor', description='Check installed audio tools')
     args = parser.parse_args(argv)
     if args.command == 'run' and args.out is None:
         args.out = Path('output') / args.score.stem
