@@ -61,14 +61,13 @@ autotrack run my-song.mxl --effort high --out output/my-song-high
 
 ## Working files and retries
 
-Autotrack keeps its working files separately in the gitignored
+Autotrack keeps its working files separately in the
 `work/my-song/` folder. This includes the separate voices, WAV mixes, an editable
-score, and settings. Each attempt has its own folder, and files are kept even if
-a run fails.
+score, and settings.
 
 To retry a failed run, use the same command. Completed phrases are reused to save
 time. You can move the working folder with `--work-dir PATH`, or delete it when
-you no longer need the intermediates. Your finished MP3s remain independent.
+you no longer need the intermediates.
 
 ## Development
 
