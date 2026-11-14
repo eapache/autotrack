@@ -1,4 +1,4 @@
-"""Import explicit MusicXML voices; never infer parts from pitch ordering."""
+"""Import explicit MusicXML voices, including conventional two-staff scores."""
 import re
 import copy
 from collections import Counter
@@ -85,6 +85,11 @@ def lanes(score):
                 result.setdefault(key, {'name': name, 'notes': []})['notes'].append((at, el))
     for i, part in enumerate(score.parts, 1):
         walk(part, float(part.offset), '0', i, part.partName or str(part.id))
+        clefs = list(part.recurse().getElementsByClass('Clef'))
+        for selector, lane in result.items():
+            if selector.split(':')[0] == str(i):
+                lane['staff'] = i
+                lane['clef'] = clefs[0].sign if clefs else None
     for lane in result.values():
         lane['notes'].sort(key=lambda pair: pair[0])
     return result
@@ -99,6 +104,65 @@ def describe(score):
     return rows
 
 
+def shared_staff_mapping(available):
+    """Recognize two vocal staves without ever sorting notes by pitch."""
+    if len(available) != 4:
+        return None
+    staves = {}
+    for selector, lane in available.items():
+        staves.setdefault(lane['staff'], []).append(selector)
+    if len(staves) != 2 or any(len(v) != 2 for v in staves.values()):
+        return None
+    result = {}
+    for (_, selectors), sign, parts in zip(sorted(staves.items()), ('G', 'F'),
+                                              (('tenor', 'lead'), ('baritone', 'bass'))):
+        if any(available[s]['clef'] != sign for s in selectors):
+            return None
+        # Stem direction identifies the entire voice, including crossed notes.
+        directions = []
+        has_stems = False
+        for selector in selectors:
+            counts = Counter(n.stemDirection for _, n in available[selector]['notes']
+                             if n.stemDirection in ('up', 'down'))
+            has_stems |= bool(counts)
+            directions.append('up' if counts['up'] > counts['down'] else
+                              'down' if counts['down'] > counts['up'] else None)
+        if set(directions) == {'up', 'down'}:
+            ordered = [selectors[directions.index(d)] for d in ('up', 'down')]
+        elif not has_stems:
+            # Conventional MusicXML voice numbering when stems are omitted.
+            ids = {s.rsplit(':', 1)[1]: s for s in selectors}
+            pair = ('1', '2') if set(ids) == {'1', '2'} else ('3', '4')
+            if set(ids) != set(pair) or (sign == 'G' and pair != ('1', '2')):
+                return None
+            ordered = [ids[v] for v in pair]
+        else:
+            return None
+        result.update(zip(parts, ordered))
+    return result
+
+
+def share_lyrics(available, mapped, missing_lyric):
+    """Copy shared text only into wholly untexted voices with identical rhythm."""
+    donors = [mapped[p] for p in ('lead', 'tenor', 'baritone', 'bass')
+              if any(n.lyrics for _, n in available[mapped[p]]['notes'])]
+    def rhythm(selector):
+        return [(at, float(n.duration.quarterLength),
+                 n.tie.type if n.tie else None)
+                for at, n in available[selector]['notes']]
+    for part, selector in mapped.items():
+        if selector in donors:
+            continue
+        candidates = sorted(donors, key=lambda s: available[s]['staff'] != available[selector]['staff'])
+        donor = next((s for s in candidates if rhythm(s) == rhythm(selector)), None)
+        if donor is not None:
+            for (_, target), (_, source) in zip(available[selector]['notes'], available[donor]['notes']):
+                target.lyrics = copy.deepcopy(source.lyrics)
+        elif donors and missing_lyric is None:
+            raise ValueError(f'{part}: shared lyrics have different rhythms; attach lyrics to this voice '
+                             'in your notation editor or pass --missing-lyric doo')
+
+
 def resolve_mapping(available, mapping):
     if mapping:
         result = dict(item.split('=', 1) for item in mapping.split(','))
@@ -111,6 +175,8 @@ def resolve_mapping(available, mapping):
                 if aliases[name] in result:
                     raise ValueError(f'Ambiguous {aliases[name]} voices; supply an explicit --map from inspect')
                 result[aliases[name]] = key
+        if not result:
+            result = shared_staff_mapping(available) or {}
     if set(result) != set(PARTS) or len(set(result.values())) != 4:
         raise ValueError('Map four distinct voices with --map tenor=1:1,lead=1:2,baritone=2:1,bass=2:2 (use inspect for actual selectors)')
     if any(key not in available for key in result.values()):
@@ -123,6 +189,8 @@ def import_score(source, mapping=None, pronunciations=None, bpm=None, swing=1., 
     parsed = read(source, expand)
     available = lanes(parsed)
     mapped = resolve_mapping(available, mapping)
+    if shared_staff_mapping(available) is not None:
+        share_lyrics(available, mapped, missing_lyric)
     dictionary = cmudict.dict()
     overrides = {k.lower(): v.split() if isinstance(v, str) else v for k, v in (pronunciations or {}).items()}
     unknown = set()

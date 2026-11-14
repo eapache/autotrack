@@ -5,7 +5,26 @@
 ### Parts
 
 Separate parts named Tenor, Lead, Baritone/Bari, and Bass are recognized
-automatically. For shared staves, list the available voices:
+automatically. Conventional two-staff barbershop scores are also recognized:
+two explicit voices on an upper treble staff (including octave-down treble),
+and two on a lower bass staff. These may be separate MusicXML parts or two
+staves within one part.
+
+The predominantly up-stem voice is tenor on the upper staff and baritone on
+the lower; the down-stem voices are lead and bass. When stems are omitted,
+conventional voice numbers 1/2 (or 3/4 on the lower staff) are used in that
+order. Part assignments follow the whole MusicXML voice through crossings,
+never the pitch order of individual notes. Printed crossing marks are not
+interpreted; the MusicXML must already encode the correct voice identities.
+
+Shared lyrics are copied into completely lyric-free voices when note onsets,
+durations, and ties match a texted voice. Text on the same staff is preferred,
+then the lead and other voices. Existing lyrics are preserved. If rhythms
+differ, attach lyrics explicitly in your notation editor (or use
+`--missing-lyric doo` for an untexted voice).
+
+For unconventional or ambiguous layouts, or to override the automatic
+assignment, list the available voices:
 
 ```sh
 autotrack inspect song.mxl

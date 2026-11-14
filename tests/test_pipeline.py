@@ -124,12 +124,14 @@ class MixTests(unittest.TestCase):
 
 class MusicXMLTests(unittest.TestCase):
     def fixture(self, folder, shared=False, compressed=False, unknown=False):
-        from music21 import stream, note, meter, tempo, tie
+        from music21 import stream, note, meter, tempo, tie, clef
         s = stream.Score()
         for i in range(2 if shared else 4):
             p = stream.Part(id=f'P{i+1}')
             p.partName = ('Upper' if i == 0 else 'Lower') if shared else PARTS[i]
             m = stream.Measure(number=1)
+            if shared:
+                m.insert(0, clef.Treble8vbClef() if i == 0 else clef.BassClef())
             m.append(meter.TimeSignature('4/4'))
             if i == 0:
                 m.insert(0, tempo.MetronomeMark(number=75))
@@ -163,15 +165,102 @@ class MusicXMLTests(unittest.TestCase):
             self.assertEqual(len(out['parts']['lead'][0]['notes']), 2)
             self.assertEqual(out['parts']['lead'][1]['notes'][0]['beat'], 3)
 
-    def test_shared_staff_voices_require_explicit_mapping(self):
+    def test_shared_staff_voices_are_mapped_automatically(self):
         with tempfile.TemporaryDirectory() as temp:
             path = self.fixture(temp, shared=True)
             rows = describe(read(path))
             self.assertEqual({r['selector'] for r in rows}, {'1:1', '1:2', '2:1', '2:2'})
-            with self.assertRaises(ValueError):
-                import_score(path)
+            automatic = import_score(path)
             out = import_score(path, mapping='tenor=1:1,lead=1:2,baritone=2:1,bass=2:2')
+            self.assertEqual(automatic, out)
             self.assertEqual(out['parts']['lead'][0]['notes'][0]['midi'], 61)
+
+    def test_shared_staff_stems_override_ids_and_preserve_crossings(self):
+        from music21 import converter, stream
+        with tempfile.TemporaryDirectory() as temp:
+            path = self.fixture(temp, shared=True)
+            score = converter.parse(path)
+            for part in score.parts:
+                voices = part.measure(1).getElementsByClass(stream.Voice)
+                for voice, stem in zip(voices, ('down', 'up')):
+                    for n in voice.notes:
+                        n.stemDirection = stem
+                voices[0].notes[-1].pitch.midi = 80
+            score.write('musicxml', fp=path)
+            out = import_score(path)
+            self.assertEqual(out['parts']['lead'][-1]['notes'][0]['midi'], 80)
+            self.assertEqual(out['parts']['tenor'][0]['notes'][0]['midi'], 61)
+            manual = import_score(path, mapping='tenor=1:1,lead=1:2,baritone=2:1,bass=2:2')
+            self.assertEqual(manual['parts']['tenor'][-1]['notes'][0]['midi'], 80)
+
+    def test_single_musicxml_part_with_two_staves(self):
+        from music21 import converter, stream, layout
+        with tempfile.TemporaryDirectory() as temp:
+            path = self.fixture(temp, shared=True)
+            original = converter.parse(path)
+            score = stream.Score()
+            staves = []
+            for i, part in enumerate(original.parts):
+                staff = stream.PartStaff(id=f'staff{i}')
+                staff.partName = 'Quartet'
+                for measure in part.getElementsByClass(stream.Measure):
+                    measure = copy.deepcopy(measure)
+                    for j, voice in enumerate(measure.getElementsByClass(stream.Voice)):
+                        voice.id = str(i * 2 + j + 1)
+                    staff.append(measure)
+                score.append(staff)
+                staves.append(staff)
+            score.insert(0, layout.StaffGroup(staves, symbol='brace', barTogether=True))
+            score.write('musicxml', fp=path)
+            self.assertIn('<staves>2</staves>', path.read_text())
+            out = import_score(path)
+            self.assertEqual(out['parts']['tenor'][0]['notes'][0]['midi'], 60)
+            self.assertEqual(out['parts']['bass'][0]['notes'][0]['midi'], 63)
+
+    def test_shared_lyrics_copy_all_verses_without_overwriting_own_words(self):
+        from music21 import converter, stream
+        with tempfile.TemporaryDirectory() as temp:
+            path = self.fixture(temp, shared=True)
+            score = converter.parse(path)
+            for i, part in enumerate(score.parts):
+                for j, voice in enumerate(part.measure(1).getElementsByClass(stream.Voice)):
+                    for n in voice.notes:
+                        if i == 0 and j == 1 and n.lyrics:
+                            n.addLyric('day', lyricNumber=2)
+                        elif i == 1 and j == 1 and n.lyrics:
+                            n.lyric = 'doo'
+                        else:
+                            n.lyrics = []
+            score.write('musicxml', fp=path)
+            out = import_score(path, pronunciations={'doo': 'd uw'})
+            self.assertEqual([g['lyric'] for g in out['parts']['tenor']],
+                             ['time', 'here', 'day', 'day'])
+            self.assertEqual([g['lyric'] for g in out['parts']['bass']], ['doo'] * 4)
+            self.assertEqual(out['parts']['baritone'][0]['lyric'], 'doo')
+
+    def test_shared_lyrics_differing_rhythm_requires_explicit_text(self):
+        from music21 import converter, stream
+        with tempfile.TemporaryDirectory() as temp:
+            path = self.fixture(temp, shared=True)
+            score = converter.parse(path)
+            voice = score.parts[0].measure(1).getElementsByClass(stream.Voice)[0]
+            for n in voice.notes:
+                n.lyrics = []
+            voice.notes[-1].duration.quarterLength = .5
+            score.write('musicxml', fp=path)
+            with self.assertRaisesRegex(ValueError, 'shared lyrics have different rhythms'):
+                import_score(path)
+
+    def test_unconventional_shared_staves_require_mapping(self):
+        from music21 import converter
+        with tempfile.TemporaryDirectory() as temp:
+            path = self.fixture(temp, shared=True)
+            score = converter.parse(path)
+            for n in score.recurse().notes:
+                n.stemDirection = 'up'
+            score.write('musicxml', fp=path)
+            with self.assertRaisesRegex(ValueError, 'Map four distinct voices'):
+                import_score(path)
 
     def test_initial_major_minor_and_ambiguous_key(self):
         from music21 import converter, key

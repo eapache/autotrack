@@ -26,6 +26,10 @@ Export your song as **MusicXML** (`.musicxml` or `.mxl`) from MuseScore or anoth
 notation editor. If you have a PDF, first transcribe it or use music-scanning
 software, then check the notes and lyrics in your editor.
 
+Conventional two-staff barbershop music is recognized automatically, with
+tenor/lead on the treble staff and baritone/bass on the bass staff. Keep each
+singing part in its own notation voice, including where voices cross.
+
 ```sh
 autotrack run my-song.mxl
 ```
