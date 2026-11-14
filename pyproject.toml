@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "barbershop-autotrack"
+version = "0.1.0"
+description = "Offline sung barbershop learning tracks from MusicXML"
+readme = "README.md"
+requires-python = ">=3.11"
+license = "MIT"
+authors = [{name = "Evan Huus"}]
+dependencies = ["numpy>=2.3,<3", "scipy>=1.16,<2", "soundfile>=0.14,<1", "music21>=10.5,<11", "cmudict>=1.1,<2", "onnxruntime>=1.32,<2"]
+
+[project.urls]
+Repository = "https://github.com/eapache/autotrack"
+Issues = "https://github.com/eapache/autotrack/issues"
+
+[project.scripts]
+autotrack = "learning_tracks.__main__:main"
+
+[tool.setuptools.packages.find]
+include = ["learning_tracks*"]

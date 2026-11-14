@@ -1,0 +1,826 @@
+{
+  "date": "2026-11-14",
+  "cpu": "AMD Ryzen 9 9900X (12 cores, 24 logical CPUs)",
+  "gpu": "NVIDIA RTX PRO 4500 Blackwell",
+  "driver": "595.99.02",
+  "notes": [
+    "Initial CPU sweep ran on a live desktop with occasional light development checks.",
+    "CPU confirmation and CUDA measurements ran without concurrent development tests.",
+    "CUDA was measured outside the sandbox, which hides GPU access.",
+    "The 60-second CUDA case was stopped before completion; no timing is reported for it."
+  ],
+  "cpu_sweep": {
+    "platform": "Linux-7.0.0-43-generic-x86_64-with-glibc2.43",
+    "cpu_count": 24,
+    "speedup": 20,
+    "repeats": 2,
+    "results": [
+      {
+        "device": "cpu",
+        "threads": 1,
+        "audio_seconds": 4,
+        "session_seconds": 0.2474172509996606,
+        "settings": {
+          "version": 1,
+          "speedup": 20,
+          "style": "fresh",
+          "seed": 42,
+          "onnxruntime": "1.32.0",
+          "threads": 1,
+          "phrase_seconds": 13.0,
+          "gender": 0.0,
+          "velocity": 1.0,
+          "device": "cpu",
+          "gpu_id": null
+        },
+        "samples_seconds": [
+          3.488691737999943,
+          3.459077119000085
+        ],
+        "median_seconds": 3.473884428500014,
+        "realtime_factor": 0.8684711071250035
+      },
+      {
+        "device": "cpu",
+        "threads": 1,
+        "audio_seconds": 12,
+        "session_seconds": 0.2474172509996606,
+        "settings": {
+          "version": 1,
+          "speedup": 20,
+          "style": "fresh",
+          "seed": 42,
+          "onnxruntime": "1.32.0",
+          "threads": 1,
+          "phrase_seconds": 13.0,
+          "gender": 0.0,
+          "velocity": 1.0,
+          "device": "cpu",
+          "gpu_id": null
+        },
+        "samples_seconds": [
+          9.83357991999992,
+          9.92848928400008
+        ],
+        "median_seconds": 9.881034602,
+        "realtime_factor": 0.8234195501666667
+      },
+      {
+        "device": "cpu",
+        "threads": 1,
+        "audio_seconds": 30,
+        "session_seconds": 0.2474172509996606,
+        "settings": {
+          "version": 1,
+          "speedup": 20,
+          "style": "fresh",
+          "seed": 42,
+          "onnxruntime": "1.32.0",
+          "threads": 1,
+          "phrase_seconds": 13.0,
+          "gender": 0.0,
+          "velocity": 1.0,
+          "device": "cpu",
+          "gpu_id": null
+        },
+        "samples_seconds": [
+          24.674550583000382,
+          25.39804532199969
+        ],
+        "median_seconds": 25.036297952500036,
+        "realtime_factor": 0.8345432650833345
+      },
+      {
+        "device": "cpu",
+        "threads": 1,
+        "audio_seconds": 60,
+        "session_seconds": 0.2474172509996606,
+        "settings": {
+          "version": 1,
+          "speedup": 20,
+          "style": "fresh",
+          "seed": 42,
+          "onnxruntime": "1.32.0",
+          "threads": 1,
+          "phrase_seconds": 13.0,
+          "gender": 0.0,
+          "velocity": 1.0,
+          "device": "cpu",
+          "gpu_id": null
+        },
+        "samples_seconds": [
+          51.22112684700005,
+          51.24880405999966
+        ],
+        "median_seconds": 51.23496545349985,
+        "realtime_factor": 0.8539160908916642
+      },
+      {
+        "device": "cpu",
+        "threads": 2,
+        "audio_seconds": 4,
+        "session_seconds": 0.2096489720001955,
+        "settings": {
+          "version": 1,
+          "speedup": 20,
+          "style": "fresh",
+          "seed": 42,
+          "onnxruntime": "1.32.0",
+          "threads": 2,
+          "phrase_seconds": 13.0,
+          "gender": 0.0,
+          "velocity": 1.0,
+          "device": "cpu",
+          "gpu_id": null
+        },
+        "samples_seconds": [
+          1.9456184229998144,
+          1.927161845000228
+        ],
+        "median_seconds": 1.9363901340000211,
+        "realtime_factor": 0.4840975335000053
+      },
+      {
+        "device": "cpu",
+        "threads": 2,
+        "audio_seconds": 12,
+        "session_seconds": 0.2096489720001955,
+        "settings": {
+          "version": 1,
+          "speedup": 20,
+          "style": "fresh",
+          "seed": 42,
+          "onnxruntime": "1.32.0",
+          "threads": 2,
+          "phrase_seconds": 13.0,
+          "gender": 0.0,
+          "velocity": 1.0,
+          "device": "cpu",
+          "gpu_id": null
+        },
+        "samples_seconds": [
+          5.580555733999972,
+          5.489308264999636
+        ],
+        "median_seconds": 5.534931999499804,
+        "realtime_factor": 0.4612443332916503
+      },
+      {
+        "device": "cpu",
+        "threads": 2,
+        "audio_seconds": 30,
+        "session_seconds": 0.2096489720001955,
+        "settings": {
+          "version": 1,
+          "speedup": 20,
+          "style": "fresh",
+          "seed": 42,
+          "onnxruntime": "1.32.0",
+          "threads": 2,
+          "phrase_seconds": 13.0,
+          "gender": 0.0,
+          "velocity": 1.0,
+          "device": "cpu",
+          "gpu_id": null
+        },
+        "samples_seconds": [
+          13.875083359999735,
+          13.926900896000006
+        ],
+        "median_seconds": 13.90099212799987,
+        "realtime_factor": 0.46336640426666237
+      },
+      {
+        "device": "cpu",
+        "threads": 2,
+        "audio_seconds": 60,
+        "session_seconds": 0.2096489720001955,
+        "settings": {
+          "version": 1,
+          "speedup": 20,
+          "style": "fresh",
+          "seed": 42,
+          "onnxruntime": "1.32.0",
+          "threads": 2,
+          "phrase_seconds": 13.0,
+          "gender": 0.0,
+          "velocity": 1.0,
+          "device": "cpu",
+          "gpu_id": null
+        },
+        "samples_seconds": [
+          30.002282923000166,
+          29.83898587099975
+        ],
+        "median_seconds": 29.920634396999958,
+        "realtime_factor": 0.4986772399499993
+      },
+      {
+        "device": "cpu",
+        "threads": 4,
+        "audio_seconds": 4,
+        "session_seconds": 0.2099712509998426,
+        "settings": {
+          "version": 1,
+          "speedup": 20,
+          "style": "fresh",
+          "seed": 42,
+          "onnxruntime": "1.32.0",
+          "threads": 4,
+          "phrase_seconds": 13.0,
+          "gender": 0.0,
+          "velocity": 1.0,
+          "device": "cpu",
+          "gpu_id": null
+        },
+        "samples_seconds": [
+          1.1726920099999916,
+          1.2004857319998337
+        ],
+        "median_seconds": 1.1865888709999126,
+        "realtime_factor": 0.29664721774997815
+      },
+      {
+        "device": "cpu",
+        "threads": 4,
+        "audio_seconds": 12,
+        "session_seconds": 0.2099712509998426,
+        "settings": {
+          "version": 1,
+          "speedup": 20,
+          "style": "fresh",
+          "seed": 42,
+          "onnxruntime": "1.32.0",
+          "threads": 4,
+          "phrase_seconds": 13.0,
+          "gender": 0.0,
+          "velocity": 1.0,
+          "device": "cpu",
+          "gpu_id": null
+        },
+        "samples_seconds": [
+          3.3519072180001785,
+          3.3080762209997374
+        ],
+        "median_seconds": 3.329991719499958,
+        "realtime_factor": 0.27749930995832983
+      },
+      {
+        "device": "cpu",
+        "threads": 4,
+        "audio_seconds": 30,
+        "session_seconds": 0.2099712509998426,
+        "settings": {
+          "version": 1,
+          "speedup": 20,
+          "style": "fresh",
+          "seed": 42,
+          "onnxruntime": "1.32.0",
+          "threads": 4,
+          "phrase_seconds": 13.0,
+          "gender": 0.0,
+          "velocity": 1.0,
+          "device": "cpu",
+          "gpu_id": null
+        },
+        "samples_seconds": [
+          8.545450363999862,
+          8.744600413000171
+        ],
+        "median_seconds": 8.645025388500017,
+        "realtime_factor": 0.28816751295000054
+      },
+      {
+        "device": "cpu",
+        "threads": 4,
+        "audio_seconds": 60,
+        "session_seconds": 0.2099712509998426,
+        "settings": {
+          "version": 1,
+          "speedup": 20,
+          "style": "fresh",
+          "seed": 42,
+          "onnxruntime": "1.32.0",
+          "threads": 4,
+          "phrase_seconds": 13.0,
+          "gender": 0.0,
+          "velocity": 1.0,
+          "device": "cpu",
+          "gpu_id": null
+        },
+        "samples_seconds": [
+          19.321468052,
+          19.241339693999635
+        ],
+        "median_seconds": 19.281403872999817,
+        "realtime_factor": 0.32135673121666364
+      },
+      {
+        "device": "cpu",
+        "threads": 8,
+        "audio_seconds": 4,
+        "session_seconds": 0.17411115200002314,
+        "settings": {
+          "version": 1,
+          "speedup": 20,
+          "style": "fresh",
+          "seed": 42,
+          "onnxruntime": "1.32.0",
+          "threads": 8,
+          "phrase_seconds": 13.0,
+          "gender": 0.0,
+          "velocity": 1.0,
+          "device": "cpu",
+          "gpu_id": null
+        },
+        "samples_seconds": [
+          1.0313297819998297,
+          1.0375898340003005
+        ],
+        "median_seconds": 1.034459808000065,
+        "realtime_factor": 0.2586149520000163
+      },
+      {
+        "device": "cpu",
+        "threads": 8,
+        "audio_seconds": 12,
+        "session_seconds": 0.17411115200002314,
+        "settings": {
+          "version": 1,
+          "speedup": 20,
+          "style": "fresh",
+          "seed": 42,
+          "onnxruntime": "1.32.0",
+          "threads": 8,
+          "phrase_seconds": 13.0,
+          "gender": 0.0,
+          "velocity": 1.0,
+          "device": "cpu",
+          "gpu_id": null
+        },
+        "samples_seconds": [
+          2.6996327290003137,
+          2.639391524000075
+        ],
+        "median_seconds": 2.6695121265001944,
+        "realtime_factor": 0.2224593438750162
+      },
+      {
+        "device": "cpu",
+        "threads": 8,
+        "audio_seconds": 30,
+        "session_seconds": 0.17411115200002314,
+        "settings": {
+          "version": 1,
+          "speedup": 20,
+          "style": "fresh",
+          "seed": 42,
+          "onnxruntime": "1.32.0",
+          "threads": 8,
+          "phrase_seconds": 13.0,
+          "gender": 0.0,
+          "velocity": 1.0,
+          "device": "cpu",
+          "gpu_id": null
+        },
+        "samples_seconds": [
+          6.306161039000017,
+          6.345658951999667
+        ],
+        "median_seconds": 6.325909995499842,
+        "realtime_factor": 0.21086366651666139
+      },
+      {
+        "device": "cpu",
+        "threads": 8,
+        "audio_seconds": 60,
+        "session_seconds": 0.17411115200002314,
+        "settings": {
+          "version": 1,
+          "speedup": 20,
+          "style": "fresh",
+          "seed": 42,
+          "onnxruntime": "1.32.0",
+          "threads": 8,
+          "phrase_seconds": 13.0,
+          "gender": 0.0,
+          "velocity": 1.0,
+          "device": "cpu",
+          "gpu_id": null
+        },
+        "samples_seconds": [
+          13.37960707000002,
+          13.381991887000368
+        ],
+        "median_seconds": 13.380799478500194,
+        "realtime_factor": 0.2230133246416699
+      },
+      {
+        "device": "cpu",
+        "threads": 12,
+        "audio_seconds": 4,
+        "session_seconds": 0.17901741199966636,
+        "settings": {
+          "version": 1,
+          "speedup": 20,
+          "style": "fresh",
+          "seed": 42,
+          "onnxruntime": "1.32.0",
+          "threads": 12,
+          "phrase_seconds": 13.0,
+          "gender": 0.0,
+          "velocity": 1.0,
+          "device": "cpu",
+          "gpu_id": null
+        },
+        "samples_seconds": [
+          1.046354951000012,
+          1.018427234000228
+        ],
+        "median_seconds": 1.03239109250012,
+        "realtime_factor": 0.25809777312503
+      },
+      {
+        "device": "cpu",
+        "threads": 12,
+        "audio_seconds": 12,
+        "session_seconds": 0.17901741199966636,
+        "settings": {
+          "version": 1,
+          "speedup": 20,
+          "style": "fresh",
+          "seed": 42,
+          "onnxruntime": "1.32.0",
+          "threads": 12,
+          "phrase_seconds": 13.0,
+          "gender": 0.0,
+          "velocity": 1.0,
+          "device": "cpu",
+          "gpu_id": null
+        },
+        "samples_seconds": [
+          2.5142596239998056,
+          2.670314674999645
+        ],
+        "median_seconds": 2.5922871494997253,
+        "realtime_factor": 0.21602392912497712
+      },
+      {
+        "device": "cpu",
+        "threads": 12,
+        "audio_seconds": 30,
+        "session_seconds": 0.17901741199966636,
+        "settings": {
+          "version": 1,
+          "speedup": 20,
+          "style": "fresh",
+          "seed": 42,
+          "onnxruntime": "1.32.0",
+          "threads": 12,
+          "phrase_seconds": 13.0,
+          "gender": 0.0,
+          "velocity": 1.0,
+          "device": "cpu",
+          "gpu_id": null
+        },
+        "samples_seconds": [
+          5.994983015999878,
+          5.996816362000118
+        ],
+        "median_seconds": 5.995899688999998,
+        "realtime_factor": 0.1998633229666666
+      },
+      {
+        "device": "cpu",
+        "threads": 12,
+        "audio_seconds": 60,
+        "session_seconds": 0.17901741199966636,
+        "settings": {
+          "version": 1,
+          "speedup": 20,
+          "style": "fresh",
+          "seed": 42,
+          "onnxruntime": "1.32.0",
+          "threads": 12,
+          "phrase_seconds": 13.0,
+          "gender": 0.0,
+          "velocity": 1.0,
+          "device": "cpu",
+          "gpu_id": null
+        },
+        "samples_seconds": [
+          12.093990993000261,
+          12.2762853549998
+        ],
+        "median_seconds": 12.18513817400003,
+        "realtime_factor": 0.20308563623333384
+      },
+      {
+        "device": "cpu",
+        "threads": 24,
+        "audio_seconds": 4,
+        "session_seconds": 0.1768878279999626,
+        "settings": {
+          "version": 1,
+          "speedup": 20,
+          "style": "fresh",
+          "seed": 42,
+          "onnxruntime": "1.32.0",
+          "threads": 24,
+          "phrase_seconds": 13.0,
+          "gender": 0.0,
+          "velocity": 1.0,
+          "device": "cpu",
+          "gpu_id": null
+        },
+        "samples_seconds": [
+          1.2155626059998212,
+          1.259687058000054
+        ],
+        "median_seconds": 1.2376248319999377,
+        "realtime_factor": 0.3094062079999844
+      },
+      {
+        "device": "cpu",
+        "threads": 24,
+        "audio_seconds": 12,
+        "session_seconds": 0.1768878279999626,
+        "settings": {
+          "version": 1,
+          "speedup": 20,
+          "style": "fresh",
+          "seed": 42,
+          "onnxruntime": "1.32.0",
+          "threads": 24,
+          "phrase_seconds": 13.0,
+          "gender": 0.0,
+          "velocity": 1.0,
+          "device": "cpu",
+          "gpu_id": null
+        },
+        "samples_seconds": [
+          3.256871365000279,
+          3.145019164999667
+        ],
+        "median_seconds": 3.200945264999973,
+        "realtime_factor": 0.26674543874999773
+      },
+      {
+        "device": "cpu",
+        "threads": 24,
+        "audio_seconds": 30,
+        "session_seconds": 0.1768878279999626,
+        "settings": {
+          "version": 1,
+          "speedup": 20,
+          "style": "fresh",
+          "seed": 42,
+          "onnxruntime": "1.32.0",
+          "threads": 24,
+          "phrase_seconds": 13.0,
+          "gender": 0.0,
+          "velocity": 1.0,
+          "device": "cpu",
+          "gpu_id": null
+        },
+        "samples_seconds": [
+          7.400306271000318,
+          7.4227158579997194
+        ],
+        "median_seconds": 7.411511064500019,
+        "realtime_factor": 0.24705036881666728
+      },
+      {
+        "device": "cpu",
+        "threads": 24,
+        "audio_seconds": 60,
+        "session_seconds": 0.1768878279999626,
+        "settings": {
+          "version": 1,
+          "speedup": 20,
+          "style": "fresh",
+          "seed": 42,
+          "onnxruntime": "1.32.0",
+          "threads": 24,
+          "phrase_seconds": 13.0,
+          "gender": 0.0,
+          "velocity": 1.0,
+          "device": "cpu",
+          "gpu_id": null
+        },
+        "samples_seconds": [
+          14.444620837000002,
+          14.096899719000248
+        ],
+        "median_seconds": 14.270760278000125,
+        "realtime_factor": 0.2378460046333354
+      }
+    ]
+  },
+  "cpu_confirmation": {
+    "platform": "Linux-7.0.0-43-generic-x86_64-with-glibc2.43",
+    "cpu_count": 24,
+    "speedup": 20,
+    "repeats": 3,
+    "mode": "single uncached chunk",
+    "results": [
+      {
+        "device": "cpu",
+        "threads": 8,
+        "audio_seconds": 12,
+        "session_seconds": 0.25985540800002127,
+        "settings": {
+          "version": 1,
+          "speedup": 20,
+          "style": "fresh",
+          "seed": 42,
+          "onnxruntime": "1.32.0",
+          "threads": 8,
+          "phrase_seconds": 13.0,
+          "gender": 0.0,
+          "velocity": 1.0,
+          "device": "cpu",
+          "gpu_id": null
+        },
+        "samples_seconds": [
+          2.7682546730002286,
+          2.736364497000068,
+          2.6669187589996
+        ],
+        "median_seconds": 2.736364497000068,
+        "realtime_factor": 0.22803037475000565
+      },
+      {
+        "device": "cpu",
+        "threads": 12,
+        "audio_seconds": 12,
+        "session_seconds": 0.20946336700035317,
+        "settings": {
+          "version": 1,
+          "speedup": 20,
+          "style": "fresh",
+          "seed": 42,
+          "onnxruntime": "1.32.0",
+          "threads": 12,
+          "phrase_seconds": 13.0,
+          "gender": 0.0,
+          "velocity": 1.0,
+          "device": "cpu",
+          "gpu_id": null
+        },
+        "samples_seconds": [
+          2.6455158150001807,
+          2.672892778000005,
+          2.6617101970000476
+        ],
+        "median_seconds": 2.6617101970000476,
+        "realtime_factor": 0.2218091830833373
+      },
+      {
+        "device": "cpu",
+        "threads": 24,
+        "audio_seconds": 12,
+        "session_seconds": 0.1890643319998162,
+        "settings": {
+          "version": 1,
+          "speedup": 20,
+          "style": "fresh",
+          "seed": 42,
+          "onnxruntime": "1.32.0",
+          "threads": 24,
+          "phrase_seconds": 13.0,
+          "gender": 0.0,
+          "velocity": 1.0,
+          "device": "cpu",
+          "gpu_id": null
+        },
+        "samples_seconds": [
+          3.2082926220000445,
+          3.2466503420000663,
+          3.1520803720000004
+        ],
+        "median_seconds": 3.2082926220000445,
+        "realtime_factor": 0.2673577185000037
+      }
+    ],
+    "voice_files_sha256": {
+      "dsacoustic/phonemes.txt": "904dcf334cf11b4f07b13b38171ce55148a818e6f58d377bf7fdfdc821990041",
+      "dsacoustic/tiger_acou.onnx": "869475d7e78e8da27e684b57142e69c5d1c3620e94c2e0e11705baac97512ef7",
+      "dsacoustic/tiger_fresh.emb": "45c88f0e3614b77dfeb8b6a70c0f172d8b65494fe04067d71230671f48c957ab",
+      "dsvocoder/tgm_hifigan.onnx": "fd368a82a12d4a2474661bb4b431d80192e8fdd1a0af0ca561b4fad453c975d0"
+    }
+  },
+  "cuda": {
+    "platform": "Linux-7.0.0-43-generic-x86_64-with-glibc2.43",
+    "cpu_count": 24,
+    "speedup": 20,
+    "repeats": 2,
+    "mode": "single uncached chunk",
+    "results": [
+      {
+        "device": "cuda",
+        "threads": 8,
+        "audio_seconds": 4,
+        "session_seconds": 0.7070269450000524,
+        "settings": {
+          "version": 1,
+          "speedup": 20,
+          "style": "fresh",
+          "seed": 42,
+          "onnxruntime": "1.32.0",
+          "threads": 8,
+          "phrase_seconds": 13.0,
+          "gender": 0.0,
+          "velocity": 1.0,
+          "device": "cuda",
+          "gpu_id": 0
+        },
+        "samples_seconds": [
+          0.4925383409999995,
+          0.4919695399999
+        ],
+        "median_seconds": 0.49225394049994975,
+        "realtime_factor": 0.12306348512498744
+      },
+      {
+        "device": "cuda",
+        "threads": 8,
+        "audio_seconds": 12,
+        "session_seconds": 0.7070269450000524,
+        "settings": {
+          "version": 1,
+          "speedup": 20,
+          "style": "fresh",
+          "seed": 42,
+          "onnxruntime": "1.32.0",
+          "threads": 8,
+          "phrase_seconds": 13.0,
+          "gender": 0.0,
+          "velocity": 1.0,
+          "device": "cuda",
+          "gpu_id": 0
+        },
+        "samples_seconds": [
+          3.5899420519999694,
+          3.590482419000182
+        ],
+        "median_seconds": 3.5902122355000756,
+        "realtime_factor": 0.2991843529583396
+      },
+      {
+        "device": "cuda",
+        "threads": 8,
+        "audio_seconds": 30,
+        "session_seconds": 0.7070269450000524,
+        "settings": {
+          "version": 1,
+          "speedup": 20,
+          "style": "fresh",
+          "seed": 42,
+          "onnxruntime": "1.32.0",
+          "threads": 8,
+          "phrase_seconds": 13.0,
+          "gender": 0.0,
+          "velocity": 1.0,
+          "device": "cuda",
+          "gpu_id": 0
+        },
+        "samples_seconds": [
+          21.25091421299976,
+          21.310869996999827
+        ],
+        "median_seconds": 21.280892104999793,
+        "realtime_factor": 0.7093630701666598
+      }
+    ],
+    "voice_files_sha256": {
+      "dsacoustic/phonemes.txt": "904dcf334cf11b4f07b13b38171ce55148a818e6f58d377bf7fdfdc821990041",
+      "dsacoustic/tiger_acou.onnx": "869475d7e78e8da27e684b57142e69c5d1c3620e94c2e0e11705baac97512ef7",
+      "dsacoustic/tiger_fresh.emb": "45c88f0e3614b77dfeb8b6a70c0f172d8b65494fe04067d71230671f48c957ab",
+      "dsvocoder/tgm_hifigan.onnx": "fd368a82a12d4a2474661bb4b431d80192e8fdd1a0af0ca561b4fad453c975d0"
+    }
+  },
+  "cuda_layout_probe": [
+    {
+      "audio_seconds": 12,
+      "samples_seconds": [
+        3.6256725740004185,
+        3.625234275999901
+      ],
+      "settings": {
+        "version": 1,
+        "speedup": 20,
+        "style": "fresh",
+        "seed": 42,
+        "onnxruntime": "1.32.0",
+        "threads": 8,
+        "phrase_seconds": 13.0,
+        "gender": 0.0,
+        "velocity": 1.0,
+        "cudnn_conv1d_pad_to_nc1d": 1,
+        "device": "cuda",
+        "gpu_id": 0
+      }
+    }
+  ]
+}
