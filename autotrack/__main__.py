@@ -65,6 +65,7 @@ def main(argv=None):
                     'tenor, lead, baritone, bass, and a full mix.',
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog='''Getting started:
+  %(prog)s download-voice       Install the model and default singer once
   %(prog)s run my-song.mxl      Make five MP3s in output/my-song/
 
 Export your sheet music as MusicXML (.musicxml or .mxl) from your notation
@@ -95,7 +96,7 @@ Use %(prog)s COMMAND --help for more options.''')
     run.add_argument('--out', type=Path, help='Folder for finished tracks (default: output/SONG)')
     advanced = run.add_argument_group('Advanced settings')
     advanced.add_argument('--soulx-root', type=Path, default=DATA / 'SoulX-Singer', help='SoulX-Singer source checkout')
-    advanced.add_argument('--soulx-python', help='SoulX interpreter (default: .venv/bin/python under --soulx-root)')
+    advanced.add_argument('--soulx-python', help='Override the Python interpreter used for inference')
     advanced.add_argument('--checkpoint', type=Path, help='Override the SoulX model.pt path')
     run.add_argument('--prompt-audio', type=Path, help='Reference singer recording (default: upstream English example)')
     run.add_argument('--prompt-metadata', type=Path, help='Aligned SoulX JSON for the reference recording')
@@ -108,6 +109,7 @@ Use %(prog)s COMMAND --help for more options.''')
     advanced.add_argument('--phrase-seconds', type=float, default=13., help='Maximum phrase grouping span, 1–60 seconds; a syllable is never split')
     import_options(run.add_argument_group('Score settings'))
     mixing_options(run)
+    sub.add_parser('download-voice', help='Download SoulX-Singer and its default English reference')
     sub.add_parser('doctor', description='Check installed audio tools')
     args = parser.parse_args(argv)
     if args.command == 'run' and args.out is None:
@@ -115,9 +117,12 @@ Use %(prog)s COMMAND --help for more options.''')
     working_run = None
     renderer = None
     try:
-        if args.command == 'doctor':
+        if args.command == 'download-voice':
+            from .voice import install
+            install(DATA / 'SoulX-Singer')
+        elif args.command == 'doctor':
             print(json.dumps({'ffmpeg': shutil.which('ffmpeg'), 'default_soulx_root': str(DATA / 'SoulX-Singer'),
-                              'default_soulx_python': shutil.which(str(DATA / 'SoulX-Singer/.venv/bin/python'))}, indent=2))
+                              'autotrack_python': sys.executable}, indent=2))
         elif args.command == 'inspect':
             from .musicxml import read, describe
             from music21.pitch import Pitch

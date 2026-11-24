@@ -1,10 +1,12 @@
 """Score-conditioned SoulX-Singer inference, with content-addressed phrase caching."""
 import hashlib
+import importlib.util
 import json
 import os
 import re
 import shutil
 import subprocess
+import sys
 import tempfile
 from pathlib import Path
 import numpy as np
@@ -73,9 +75,15 @@ class Renderer:
             raise ValueError('device must be cpu, cuda or cuda:N')
         self.root = Path(root).resolve()
         self.cache = Path(cache)
-        self.python = shutil.which(str(python or self.root / '.venv/bin/python'))
+        # Existing installs can still use their dedicated SoulX interpreter.
+        legacy = self.root / '.venv/bin/python'
+        if python is None and importlib.util.find_spec('torch') is None:
+            if not legacy.is_file():
+                raise ValueError("Install Autotrack with the 'singer' extra to render audio.")
+            python = legacy
+        self.python = shutil.which(str(python or sys.executable))
         if not self.python:
-            raise ValueError('SoulX Python environment missing. See README setup or supply --soulx-python.')
+            raise ValueError('Cannot find the requested SoulX Python interpreter.')
         self.python = os.path.abspath(self.python)
         if bool(prompt_audio) != bool(prompt_metadata):
             raise ValueError('Supply --prompt-audio and --prompt-metadata together')
@@ -88,7 +96,7 @@ class Renderer:
         }
         for path in [self.root / 'cli/inference.py', *files.values()]:
             if not path.is_file():
-                raise ValueError(f'Missing SoulX asset: {path}. See README setup.')
+                raise ValueError(f'Missing SoulX asset: {path}. Run autotrack download-voice or check the supplied path.')
         self.files = {k: str(v.resolve()) for k, v in files.items()}
         self.phones = set(json.loads(files['phoneset'].read_text()))
         threads = default_threads() if threads is None else threads

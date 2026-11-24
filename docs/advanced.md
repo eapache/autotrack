@@ -158,8 +158,22 @@ metadata timestamps refer to. Autotrack extracts the first annotated segment
 using its start and end in milliseconds. To align a new recording, follow
 the [upstream preprocessing instructions](https://github.com/Soul-AILab/SoulX-Singer#readme).
 
-Follow the [setup commands](../README.md#set-up) for the tested source and
-checkpoint revisions. `--soulx-root PATH` selects a different checkout,
-`--soulx-python PATH` selects its Python interpreter, and `--checkpoint PATH`
-overrides the model file. `autotrack doctor` reports FFmpeg and the default
-checkout and interpreter locations.
+The `singer` extra installs inference dependencies alongside Autotrack.
+On Linux, for smaller CPU-only wheels, run this in the same environment
+before installing Autotrack:
+
+```sh
+python -m pip install --index-url https://download.pytorch.org/whl/cpu torch==2.2.0 torchaudio==2.2.0
+```
+
+For an NVIDIA GPU, use a compatible CUDA build of those packages and select
+the GPU with `--device`. The one-time `autotrack download-voice` command installs
+the pinned upstream code, reference and verified checkpoint in the user's data
+directory. Re-running it checks the installed assets.
+
+For an existing installation, `--soulx-root PATH` selects the upstream code and
+`--checkpoint PATH` selects the model file. Inference uses Autotrack's Python
+interpreter by default. Older installations that already have a dedicated
+interpreter under the SoulX checkout can continue using it when PyTorch is
+absent from Autotrack's environment. `--soulx-python PATH` explicitly selects
+an interpreter. `autotrack doctor` shows Autotrack's interpreter and data path.

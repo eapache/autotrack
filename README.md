@@ -5,33 +5,19 @@ bass, and a full mix**. Everything runs on your computer.
 
 ## Set up
 
-Install Autotrack with Python 3.11 or newer and FFmpeg. From this checkout:
+Install Python 3.11, FFmpeg and Git. In the Autotrack source directory, run:
 
 ```sh
-python3 -m venv .venv
+python3.11 -m venv .venv
 . .venv/bin/activate
-pip install -e .
-ffmpeg -version
+python -m pip install '.[singer]'
+autotrack download-voice
 ```
 
-SoulX-Singer uses a separate Python environment. The following Linux CPU setup
-requires Python 3.11, Git, curl and about 2.8 GB for the checkpoint, plus the
-Python packages. The upstream checkout includes an English reference singer.
-
-```sh
-soulx_dir="${XDG_DATA_HOME:-$HOME/.local/share}/autotrack/SoulX-Singer"
-git clone https://github.com/Soul-AILab/SoulX-Singer.git "$soulx_dir"
-git -C "$soulx_dir" checkout 81aeb3ae772c70093c3de74dc23c92d983801ae4
-python3.11 -m venv "$soulx_dir/.venv"
-"$soulx_dir/.venv/bin/pip" install --index-url https://download.pytorch.org/whl/cpu torch==2.2.0 torchaudio==2.2.0
-"$soulx_dir/.venv/bin/pip" install -r requirements-soulx.txt
-mkdir -p "$soulx_dir/pretrained_models/SoulX-Singer"
-curl -fL --retry 3 https://huggingface.co/Soul-AILab/SoulX-Singer/resolve/40493ad90286056c7a9095035164434a79daa8c9/model.pt -o "$soulx_dir/pretrained_models/SoulX-Singer/model.pt"
-```
-
-For GPU inference, install CUDA-compatible PyTorch and torchaudio builds in
-the SoulX environment and pass `--device cuda`. After setup, rendering runs
-offline. Activate Autotrack’s environment when starting a new terminal.
+The one-time download includes SoulX-Singer’s model (2.8 GB) and a default
+English reference recording. You can then render offline without supplying
+a recording or any model paths. For CPU-only PyTorch wheels or GPU settings,
+see [installation options](docs/advanced.md#reference-singer-and-installation).
 
 ## Make tracks
 
@@ -95,8 +81,8 @@ python -m pip install -e .
 python -m unittest discover -s tests -v
 ```
 
-Tests need FFmpeg but do not download a voice. For pinned dependencies, install
-`requirements.txt`, then `pip install --no-deps -e .`.
+Tests need FFmpeg. The base install supports score editing, mixing and the
+model-free tests. Install the `singer` extra to run inference.
 
 - [Advanced options, score preparation, and working files](docs/advanced.md)
 - [Editable score format](docs/score-format.md)
