@@ -65,7 +65,6 @@ def main(argv=None):
                     'tenor, lead, baritone, bass, and a full mix.',
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog='''Getting started:
-  %(prog)s download-voice       Set up the singing voice once (needs internet)
   %(prog)s run my-song.mxl      Make five MP3s in output/my-song/
 
 Export your sheet music as MusicXML (.musicxml or .mxl) from your notation
@@ -95,34 +94,30 @@ Use %(prog)s COMMAND --help for more options.''')
     run.add_argument('score', type=Path, help='Your MusicXML file (.musicxml or .mxl), or an editable JSON score')
     run.add_argument('--out', type=Path, help='Folder for finished tracks (default: output/SONG)')
     advanced = run.add_argument_group('Advanced settings')
-    advanced.add_argument('--voice', type=Path, default=DATA / 'tiger')
+    advanced.add_argument('--soulx-root', type=Path, default=DATA / 'SoulX-Singer', help='SoulX-Singer source checkout')
+    advanced.add_argument('--soulx-python', help='SoulX interpreter (default: .venv/bin/python under --soulx-root)')
+    advanced.add_argument('--checkpoint', type=Path, help='Override the SoulX model.pt path')
+    run.add_argument('--prompt-audio', type=Path, help='Reference singer recording (default: upstream English example)')
+    run.add_argument('--prompt-metadata', type=Path, help='Aligned SoulX JSON for the reference recording')
+    run.add_argument('--device', default='cpu', metavar='DEVICE', help='cpu (default), cuda, or cuda:N')
+    run.add_argument('--steps', type=int, default=32, help='Diffusion steps per phrase (default: 32)')
     advanced.add_argument('--work-dir', type=Path, help='Working folder (default: work/OUTPUT-NAME in the current folder)')
     advanced.add_argument('--cache', type=Path, help='Override the phrase cache inside the working folder')
     advanced.add_argument('--threads', type=int, default=default_threads(), help='CPU inference threads (default: up to 8)')
-    run.add_argument('--effort', choices=('low', 'standard', 'high', 'max'), default='standard',
-                     help='Time spent refining the singing; higher takes longer (default: standard)')
-    run.add_argument('--style', default='fresh', choices=('fresh', 'disco', 'electric', 'vinyl', 'cetera', 'mystic', 'falsetto'))
     advanced.add_argument('--seed', type=int, default=42)
     advanced.add_argument('--phrase-seconds', type=float, default=13., help='Maximum phrase grouping span, 1–60 seconds; a syllable is never split')
-    advanced.add_argument('--gender', type=float, default=0., help='Model timbre shift, -5 to 5; does not transpose notes')
-    advanced.add_argument('--velocity', type=float, default=1., help='Model phoneme speed conditioning, 0.5 to 2; preserves score timing')
     import_options(run.add_argument_group('Score settings'))
     mixing_options(run)
-    voice = sub.add_parser('download-voice', help='Set up the singing voice (only needed once)',
-                           description='Download and install the singing voice (about 540 MB). '
-                                       'Needs internet once; after setup, you can make tracks offline.')
-    voice.add_argument('destination', type=Path, nargs='?', default=DATA / 'tiger',
-                       help='Optional folder for the voice; normally chosen automatically')
-    voice.add_argument('--archive', type=Path, help='Install from an official ZIP file you already downloaded')
     sub.add_parser('doctor', description='Check installed audio tools')
     args = parser.parse_args(argv)
     if args.command == 'run' and args.out is None:
         args.out = Path('output') / args.score.stem
     working_run = None
+    renderer = None
     try:
         if args.command == 'doctor':
-            import onnxruntime as ort
-            print(json.dumps({'onnxruntime': ort.__version__, 'provider': 'CPUExecutionProvider', 'ffmpeg': shutil.which('ffmpeg')}, indent=2))
+            print(json.dumps({'ffmpeg': shutil.which('ffmpeg'), 'default_soulx_root': str(DATA / 'SoulX-Singer'),
+                              'default_soulx_python': shutil.which(str(DATA / 'SoulX-Singer/.venv/bin/python'))}, indent=2))
         elif args.command == 'inspect':
             from .musicxml import read, describe
             from music21.pitch import Pitch
@@ -139,11 +134,8 @@ Use %(prog)s COMMAND --help for more options.''')
         elif args.command == 'validate':
             score = load(args.score)
             print(f'Valid: {score["title"]}, four parts, {score["duration_beats"]:g} quarter-note beats')
-        elif args.command == 'download-voice':
-            from .voice import install
-            install(args.destination, args.archive)
         elif args.command == 'run':
-            from .render import Renderer, SR, atomic_audio
+            from .render import Renderer, SR, atomic_audio, target_metadata
             from .mix import export
             if not shutil.which('ffmpeg'):
                 raise ValueError('Install ffmpeg for MP3 export')
@@ -180,20 +172,16 @@ Use %(prog)s COMMAND --help for more options.''')
             request = {k: str(v) if isinstance(v, Path) else v for k, v in vars(args).items()}
             request['status'] = 'in_progress'
             (working_run / 'run.json').write_text(json.dumps(request, indent=2) + '\n')
-            renderer = Renderer(args.voice, args.cache or work_root / 'cache', args.threads, args.effort, args.style, args.seed,
-                                phrase_seconds=args.phrase_seconds, gender=args.gender, velocity=args.velocity)
+            renderer = Renderer(args.soulx_root, args.cache or work_root / 'cache', args.threads,
+                                python=args.soulx_python, checkpoint=args.checkpoint, prompt_audio=args.prompt_audio,
+                                prompt_metadata=args.prompt_metadata, steps=args.steps, device=args.device,
+                                seed=args.seed, phrase_seconds=args.phrase_seconds)
             renderer.check_phones(score)
             timeline = Timeline(score)
             length = round((timeline.seconds(score['duration_beats']) + 1) * SR)
-            # Preflight every syllable before rendering anything.
-            from .render import DT, frame_durations
             prepared = {part: timeline.groups(score['parts'][part]) for part in PARTS}
-            for part, groups in prepared.items():
-                for g in groups:
-                    duration = g['notes'][-1][1] - g['notes'][0][0]
-                    if duration > 30:
-                        raise ValueError(f'{part}: syllable exceeds 30 seconds')
-                    frame_durations(g['phonemes'], max(0, int(duration / DT) - 1))
+            for groups in prepared.values():
+                target_metadata(groups)
             args.out.parent.mkdir(parents=True, exist_ok=True)
             started = time.monotonic()
             # Keep intermediates and partial results after success or failure.
@@ -210,10 +198,8 @@ Use %(prog)s COMMAND --help for more options.''')
                         'elapsed_seconds': round(time.monotonic() - started, 2), 'mixes': metrics}
             (working_run / 'manifest.json').write_text(json.dumps(manifest, indent=2) + '\n')
             (working_run / 'CREDITS.txt').write_text(
-                'Synthetic singing: TIGER DS v102 by tigermeat / neutrogic.\n'
-                'https://github.com/spicytigermeat/tiger_diffsinger\n'
-                'DiffSinger and TIGER HiFi-GAN via ONNX Runtime.\n'
-                'Commercial use of this voice requires permission from the rights holder.\n'
+                'Synthetic singing: SoulX-Singer by Soul-AILab (Apache-2.0).\n'
+                'https://huggingface.co/Soul-AILab/SoulX-Singer\n'
                 'Composition and arrangement rights remain with their owners.\n')
             # Publish only complete deliverables, even with a work folder on another disk.
             with tempfile.TemporaryDirectory(prefix='.autotrack-', dir=args.out.parent) as temp:
@@ -224,7 +210,7 @@ Use %(prog)s COMMAND --help for more options.''')
             request['status'] = 'complete'
             (working_run / 'run.json').write_text(json.dumps(request, indent=2) + '\n')
             print(f'Tracks ready: {args.out}\nWorking files: {working_run}', flush=True)
-    except KeyboardInterrupt as exc:
+    except KeyboardInterrupt:
         record_failure(working_run, 'Interrupted')
         parser.exit(130, 'Interrupted; working files have been kept.\n')
     except ImportError as exc:
@@ -233,6 +219,9 @@ Use %(prog)s COMMAND --help for more options.''')
     except (ValueError, OSError, KeyError, TypeError, subprocess.CalledProcessError) as exc:
         record_failure(working_run, exc)
         parser.exit(2, f'Error: {exc}\n')
+    finally:
+        if renderer is not None:
+            renderer.close()
 
 
 if __name__ == '__main__':

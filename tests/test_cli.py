@@ -55,19 +55,19 @@ class CLITests(unittest.TestCase):
                         main(['run', str(score), '--out', str(Path(temp) / 'out'), *options])
                     renderer.assert_not_called()
 
-    def test_effort_and_work_folder_reuse_after_failure(self):
+    def test_steps_and_work_folder_reuse_after_failure(self):
         with tempfile.TemporaryDirectory() as temp, chdir(temp):
             root = Path(temp)
             score = root / 'song.json'
             score.write_text(json.dumps(simple_score()))
             work = root / 'scratch'
-            for effort in ('low', 'standard', 'high', 'max'):
+            for steps in (1, 16, 32, 64):
                 with patch('autotrack.render.Renderer') as renderer, patch('shutil.which', return_value='/ffmpeg'):
                     renderer.return_value.part.side_effect = ValueError('injected failure')
                     with self.assertRaises(SystemExit):
                         main(['run', str(score), '--pitch', 'C4', '--out', str(root / 'out'),
-                              '--work-dir', str(work), '--effort', effort])
-                    self.assertEqual(renderer.call_args.args[3], effort)
+                              '--work-dir', str(work), '--steps', str(steps)])
+                    self.assertEqual(renderer.call_args.kwargs['steps'], steps)
                     self.assertEqual(renderer.call_args.args[1], work / 'cache')
             self.assertEqual(len(list(work.glob('run-*'))), 4)
 
@@ -91,7 +91,7 @@ class CLITests(unittest.TestCase):
             with patch('autotrack.render.Renderer') as renderer:
                 instance = renderer.return_value
                 instance.part.side_effect = lambda groups, length, part: .1 * np.sin(2 * np.pi * 220 * np.arange(length) / 44100)
-                instance.fingerprint, instance.settings = {}, {'effort': 'standard'}
+                instance.fingerprint, instance.settings = {}, {'steps': 32}
                 instance.hits, instance.misses = 0, 4
                 main(['run', str(score), '--pitch', 'C4', '--out', str(root / 'out')])
             self.assertEqual({p.name for p in (root / 'out').iterdir()},

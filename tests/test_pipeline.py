@@ -8,7 +8,7 @@ import subprocess
 from pathlib import Path
 import numpy as np
 from autotrack.score import PARTS, Timeline, validate
-from autotrack.render import frame_durations
+from autotrack.render import target_metadata
 from autotrack.mix import split_mix, export
 from autotrack.musicxml import read, describe, import_score
 
@@ -41,12 +41,14 @@ class ScoreTests(unittest.TestCase):
 
     def test_short_syllable_fails_instead_of_extending_timing(self):
         with self.assertRaises(ValueError):
-            frame_durations(['s', 't', 'r', 'eh', 'ng', 'th', 's'], 5)
-        self.assertEqual(frame_durations(['ow'], 20), [20])
-        durations = frame_durations(['k', 'r', 'ih', 's'], 24)
-        self.assertEqual(sum(durations), 24)
-        self.assertGreaterEqual(min(durations), 1)
-        self.assertGreater(durations[2], durations[0])
+            target_metadata([{'phonemes': ['s', 'eh'], 'notes': [(0, .02, 60)]}])
+
+    def test_soulx_score_metadata_preserves_rests_and_melismas(self):
+        meta = target_metadata([{'phonemes': ['d', 'uw'], 'notes': [(2, 2.5, 60), (2.5, 3, 62)]},
+                                {'phonemes': ['ax'], 'notes': [(3.25, 4, 59)]}])
+        self.assertEqual(meta, {'phoneme': 'en_D-UW1 en_D-UW1 <SP> en_AH0',
+                                'note_type': '2 3 1 2', 'note_pitch': '60 62 0 59',
+                                'duration': '0.5 0.5 0.25 0.75'})
 
 
 class MixTests(unittest.TestCase):

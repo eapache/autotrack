@@ -1,0 +1,9 @@
+# Inference dependencies for the separate SoulX Python 3.11 environment.
+# Install matching torch and torchaudio builds first (see README).
+numpy<2
+scipy==1.15.3
+transformers==4.41.2
+accelerate==1.11.0
+omegaconf==2.3.0
+librosa==0.11.0
+soundfile==0.13.1

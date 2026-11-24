@@ -118,7 +118,7 @@ recoverable. A manifest is written after all mixes export successfully.
 Retry with the same command to reuse the working root’s phrase cache. For a
 variant in another output folder, reuse `--work-dir` to share its cache. Changes
 to pitch cue or balance reuse vocal phrases; changes to notes, pronunciation,
-voice settings, effort or runtime can invalidate them. `--cache PATH` overrides
+reference recording, diffusion steps or runtime can invalidate them. `--cache PATH` overrides
 the cache location. Corrupt cache files are regenerated.
 
 You can edit a saved score and render it without importing MusicXML again:
@@ -134,37 +134,32 @@ excluding the pitch cue and count-in. See [score format](score-format.md).
 
 ## Synthesis settings
 
-`--effort` increases the number of diffusion steps, while keeping the song’s
-timing unchanged:
+SoulX-Singer runs in score mode with automatic transposition disabled. The
+renderer maps each syllable to an English phone sequence and carries it through
+melismas. Version 1 scores omit lexical stress, so the renderer uses primary
+stress for vowels and maps schwa (`ax`) to unstressed `AH0`. The model generates
+24 kHz mono audio. Autotrack resamples each phrase to 44.1 kHz and places it
+at its score offset before mixing.
 
-| Effort | Diffusion steps | Internal model stride |
-| --- | ---: | ---: |
-| low | 10 | 40 |
-| standard | 20 | 20 |
-| high | 40 | 10 |
-| max | 80 | 5 |
+- `--steps N` sets the diffusion step count (default 32).
+- `--device cpu` is the default. `--device cuda` selects the default NVIDIA GPU.
+  Use `--device cuda:1` for the second visible GPU.
+- `--threads N` controls PyTorch CPU threads (default up to eight).
+- `--phrase-seconds N` sets the grouping span (1–60 seconds, default 13).
+  Gaps over 0.4 seconds end a phrase. A single syllable stays together.
+- `--seed N` sets the PyTorch seed for each phrase (default 42).
 
-More effort costs more time; it does not correct notation or guarantee better
-pronunciation.
+## Reference singer and installation
 
-All four parts use the same selected `--style`: fresh, disco, electric, vinyl,
-cetera, mystic, or falsetto. Further controls are grouped under Advanced settings
-in `autotrack run --help`:
+The default reference is the upstream English audio and its aligned metadata
+in `example/audio/`. To use a different singer, pass `--prompt-audio FILE`
+and `--prompt-metadata FILE` together. Supply the original recording that the
+metadata timestamps refer to. Autotrack extracts the first annotated segment
+using its start and end in milliseconds. To align a new recording, follow
+the [upstream preprocessing instructions](https://github.com/Soul-AILab/SoulX-Singer#readme).
 
-- `--threads N`: CPU threads; the default respects CPU affinity and caps at eight.
-- `--phrase-seconds N`: grouping limit, 1–60 seconds (default 13). Gaps over 0.4 s
-  end a phrase. Syllables are never split and can last up to 30 seconds.
-- `--gender N`: model timbre shift, −5 to +5; does not transpose notes.
-- `--velocity N`: phoneme speed conditioning, 0.5–2; preserves score timing.
-- `--seed N`: default 42; results may vary between runtime versions/hardware.
-
-Pitch smoothing and vibrato are fixed. Model depth is 400. Inference runs on CPU.
-
-## Installation and diagnostics
-
-`autotrack doctor` reports ONNX Runtime and FFmpeg availability. The voice is
-installed under `~/.local/share/autotrack/tiger`, respecting `XDG_DATA_HOME`.
-Use `download-voice models/tiger` and `--voice models/tiger` for a custom location.
-An existing official ZIP can be installed with `download-voice --archive FILE`.
-Downloads are checksum-verified; inference is offline. Model weights are not
-bundled with the package. CI runs model-free tests on Python 3.11 and 3.14.
+Follow the [setup commands](../README.md#set-up) for the tested source and
+checkpoint revisions. `--soulx-root PATH` selects a different checkout,
+`--soulx-python PATH` selects its Python interpreter, and `--checkpoint PATH`
+overrides the model file. `autotrack doctor` reports FFmpeg and the default
+checkout and interpreter locations.

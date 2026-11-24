@@ -5,20 +5,33 @@ bass, and a full mix**. Everything runs on your computer.
 
 ## Set up
 
-You need Python 3.11 or newer and FFmpeg. On Ubuntu or Debian, run these commands
-from this project’s folder:
+Install Autotrack with Python 3.11 or newer and FFmpeg. From this checkout:
 
 ```sh
-sudo apt install ffmpeg python3-venv
 python3 -m venv .venv
 . .venv/bin/activate
-pip install .
-autotrack download-voice
+pip install -e .
+ffmpeg -version
 ```
 
-The voice download is about 540 MB and only needs to be done once. After that,
-you can make tracks offline. In a new terminal, run `. .venv/bin/activate` again
-before using Autotrack.
+SoulX-Singer uses a separate Python environment. The following Linux CPU setup
+requires Python 3.11, Git, curl and about 2.8 GB for the checkpoint, plus the
+Python packages. The upstream checkout includes an English reference singer.
+
+```sh
+soulx_dir="${XDG_DATA_HOME:-$HOME/.local/share}/autotrack/SoulX-Singer"
+git clone https://github.com/Soul-AILab/SoulX-Singer.git "$soulx_dir"
+git -C "$soulx_dir" checkout 81aeb3ae772c70093c3de74dc23c92d983801ae4
+python3.11 -m venv "$soulx_dir/.venv"
+"$soulx_dir/.venv/bin/pip" install --index-url https://download.pytorch.org/whl/cpu torch==2.2.0 torchaudio==2.2.0
+"$soulx_dir/.venv/bin/pip" install -r requirements-soulx.txt
+mkdir -p "$soulx_dir/pretrained_models/SoulX-Singer"
+curl -fL --retry 3 https://huggingface.co/Soul-AILab/SoulX-Singer/resolve/40493ad90286056c7a9095035164434a79daa8c9/model.pt -o "$soulx_dir/pretrained_models/SoulX-Singer/model.pt"
+```
+
+For GPU inference, install CUDA-compatible PyTorch and torchaudio builds in
+the SoulX environment and pass `--device cuda`. After setup, rendering runs
+offline. Activate Autotrack’s environment when starting a new terminal.
 
 ## Make tracks
 
@@ -50,8 +63,8 @@ autotrack run examples/four_part_demo.musicxml \
 | Option | What it does |
 | --- | --- |
 | `--out tracks/my-song` | Choose where to save the MP3s |
-| `--effort high` | Spend more time refining the singing: `low`, `standard` (default), `high`, or `max` |
-| `--style vinyl` | Try a different voice style; the default is `fresh` |
+| `--steps 16` | Use fewer diffusion steps for a quicker render (default 32) |
+| `--prompt-audio reference.wav --prompt-metadata reference.json` | Use the singer from an aligned SoulX reference recording |
 | `--pitch Bb3` | Set the opening pitch yourself |
 | `--target-side right` | Put your part in the right ear |
 | `--dominance-db 5` | Make your part more prominent; the default is 3 |
@@ -60,7 +73,7 @@ autotrack run examples/four_part_demo.musicxml \
 For another version, choose a new output folder:
 
 ```sh
-autotrack run my-song.mxl --effort high --out output/my-song-high
+autotrack run my-song.mxl --steps 16 --out output/my-song-preview
 ```
 
 ## Working files and retries
@@ -88,7 +101,6 @@ Tests need FFmpeg but do not download a voice. For pinned dependencies, install
 - [Advanced options, score preparation, and working files](docs/advanced.md)
 - [Editable score format](docs/score-format.md)
 
-The code is MIT-licensed. The separately downloaded TIGER voice is by
-**tigermeat / neutrogic**; commercial use requires their permission. See the
-[voice project](https://github.com/spicytigermeat/tiger_diffsinger) and its installed
-`extra/LICENSE.md`. Use sheet music and arrangements you have permission to use.
+Autotrack is MIT-licensed. Soul-AILab releases the SoulX-Singer model under
+Apache-2.0. Use recordings and arrangements you have permission to use.
+See the [model card](https://huggingface.co/Soul-AILab/SoulX-Singer).
