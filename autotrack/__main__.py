@@ -95,25 +95,23 @@ Use %(prog)s COMMAND --help for more options.''')
     run.add_argument('score', type=Path, help='Your MusicXML file (.musicxml or .mxl), or an editable JSON score')
     run.add_argument('--out', type=Path, help='Folder for finished tracks (default: output/SONG)')
     advanced = run.add_argument_group('Advanced settings')
-    advanced.add_argument('--voice', type=Path, default=DATA / 'tiger')
+    advanced.add_argument('--voice', type=Path, default=DATA / 'soulx-singer')
     advanced.add_argument('--work-dir', type=Path, help='Working folder (default: work/OUTPUT-NAME in the current folder)')
     advanced.add_argument('--cache', type=Path, help='Override the phrase cache inside the working folder')
+    advanced.add_argument('--device', choices=('auto', 'cpu', 'cuda'), default='auto',
+                          help='Inference device (default: CUDA when available, otherwise CPU)')
     advanced.add_argument('--threads', type=int, default=default_threads(), help='CPU inference threads (default: up to 8)')
     run.add_argument('--effort', choices=('low', 'standard', 'high', 'max'), default='standard',
                      help='Time spent refining the singing; higher takes longer (default: standard)')
-    run.add_argument('--style', default='fresh', choices=('fresh', 'disco', 'electric', 'vinyl', 'cetera', 'mystic', 'falsetto'))
     advanced.add_argument('--seed', type=int, default=42)
     advanced.add_argument('--phrase-seconds', type=float, default=13., help='Maximum phrase grouping span, 1–60 seconds; a syllable is never split')
-    advanced.add_argument('--gender', type=float, default=0., help='Model timbre shift, -5 to 5; does not transpose notes')
-    advanced.add_argument('--velocity', type=float, default=1., help='Model phoneme speed conditioning, 0.5 to 2; preserves score timing')
     import_options(run.add_argument_group('Score settings'))
     mixing_options(run)
     voice = sub.add_parser('download-voice', help='Set up the singing voice (only needed once)',
-                           description='Download and install the singing voice (about 540 MB). '
+                           description='Download and install the singing voice (about 2.8 GB). '
                                        'Needs internet once; after setup, you can make tracks offline.')
-    voice.add_argument('destination', type=Path, nargs='?', default=DATA / 'tiger',
+    voice.add_argument('destination', type=Path, nargs='?', default=DATA / 'soulx-singer',
                        help='Optional folder for the voice; normally chosen automatically')
-    voice.add_argument('--archive', type=Path, help='Install from an official ZIP file you already downloaded')
     sub.add_parser('doctor', description='Check installed audio tools')
     args = parser.parse_args(argv)
     if args.command == 'run' and args.out is None:
@@ -121,8 +119,9 @@ Use %(prog)s COMMAND --help for more options.''')
     working_run = None
     try:
         if args.command == 'doctor':
-            import onnxruntime as ort
-            print(json.dumps({'onnxruntime': ort.__version__, 'provider': 'CPUExecutionProvider', 'ffmpeg': shutil.which('ffmpeg')}, indent=2))
+            import torch
+            from .render import select_device
+            print(json.dumps({'torch': torch.__version__, 'device': select_device(), 'ffmpeg': shutil.which('ffmpeg')}, indent=2))
         elif args.command == 'inspect':
             from .musicxml import read, describe
             from music21.pitch import Pitch
@@ -141,9 +140,9 @@ Use %(prog)s COMMAND --help for more options.''')
             print(f'Valid: {score["title"]}, four parts, {score["duration_beats"]:g} quarter-note beats')
         elif args.command == 'download-voice':
             from .voice import install
-            install(args.destination, args.archive)
+            install(args.destination)
         elif args.command == 'run':
-            from .render import Renderer, SR, atomic_audio
+            from .render import Renderer, SR, atomic_audio, check_note_duration
             from .mix import export
             if not shutil.which('ffmpeg'):
                 raise ValueError('Install ffmpeg for MP3 export')
@@ -180,20 +179,19 @@ Use %(prog)s COMMAND --help for more options.''')
             request = {k: str(v) if isinstance(v, Path) else v for k, v in vars(args).items()}
             request['status'] = 'in_progress'
             (working_run / 'run.json').write_text(json.dumps(request, indent=2) + '\n')
-            renderer = Renderer(args.voice, args.cache or work_root / 'cache', args.threads, args.effort, args.style, args.seed,
-                                phrase_seconds=args.phrase_seconds, gender=args.gender, velocity=args.velocity)
+            renderer = Renderer(args.voice, args.cache or work_root / 'cache', args.threads, args.effort, args.seed,
+                                phrase_seconds=args.phrase_seconds, device=args.device)
             renderer.check_phones(score)
             timeline = Timeline(score)
             length = round((timeline.seconds(score['duration_beats']) + 1) * SR)
             # Preflight every syllable before rendering anything.
-            from .render import DT, frame_durations
             prepared = {part: timeline.groups(score['parts'][part]) for part in PARTS}
             for part, groups in prepared.items():
                 for g in groups:
                     duration = g['notes'][-1][1] - g['notes'][0][0]
                     if duration > 30:
                         raise ValueError(f'{part}: syllable exceeds 30 seconds')
-                    frame_durations(g['phonemes'], max(0, int(duration / DT) - 1))
+                    check_note_duration(g, part)
             args.out.parent.mkdir(parents=True, exist_ok=True)
             started = time.monotonic()
             # Keep intermediates and partial results after success or failure.
@@ -210,10 +208,9 @@ Use %(prog)s COMMAND --help for more options.''')
                         'elapsed_seconds': round(time.monotonic() - started, 2), 'mixes': metrics}
             (working_run / 'manifest.json').write_text(json.dumps(manifest, indent=2) + '\n')
             (working_run / 'CREDITS.txt').write_text(
-                'Synthetic singing: TIGER DS v102 by tigermeat / neutrogic.\n'
-                'https://github.com/spicytigermeat/tiger_diffsinger\n'
-                'DiffSinger and TIGER HiFi-GAN via ONNX Runtime.\n'
-                'Commercial use of this voice requires permission from the rights holder.\n'
+                'Synthetic singing: SoulX-Singer by Soul AI Lab (Apache-2.0).\n'
+                'Reference voice: SoulX-Singer English example.\n'
+                'https://huggingface.co/Soul-AILab/SoulX-Singer\n'
                 'Composition and arrangement rights remain with their owners.\n')
             # Publish only complete deliverables, even with a work folder on another disk.
             with tempfile.TemporaryDirectory(prefix='.autotrack-', dir=args.out.parent) as temp:
@@ -230,7 +227,7 @@ Use %(prog)s COMMAND --help for more options.''')
     except ImportError as exc:
         record_failure(working_run, exc)
         parser.exit(2, f'Missing dependency: {exc}. Install the package dependencies with pip install .\n')
-    except (ValueError, OSError, KeyError, TypeError, subprocess.CalledProcessError) as exc:
+    except (ValueError, OSError, KeyError, TypeError, RuntimeError, subprocess.CalledProcessError) as exc:
         record_failure(working_run, exc)
         parser.exit(2, f'Error: {exc}\n')
 

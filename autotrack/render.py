@@ -1,4 +1,4 @@
-"""Local TIGER DiffSinger inference, with content-addressed phrase caching."""
+"""Local SoulX-Singer inference, with content-addressed phrase caching."""
 import hashlib
 import json
 import os
@@ -6,15 +6,23 @@ import tempfile
 from pathlib import Path
 import numpy as np
 import soundfile as sf
-from scipy.ndimage import gaussian_filter1d
+from scipy.signal import resample_poly
+from math import gcd
 from .score import VOWELS
 from . import default_threads
 
 SR = 44100
-HOP = 512
-DT = HOP / SR
-RENDER_VERSION = 1
-EFFORT_SPEEDUPS = {'low': 40, 'standard': 20, 'high': 10, 'max': 5}
+MODEL_FILES = Path(__file__).with_name('soulx')
+EFFORT_STEPS = {'low': 16, 'standard': 32, 'high': 64, 'max': 128}
+
+
+def select_device(requested='auto'):
+    import torch
+    if requested == 'auto':
+        return 'cuda' if torch.cuda.is_available() else 'cpu'
+    if requested == 'cuda' and not torch.cuda.is_available():
+        raise ValueError('CUDA is unavailable in this PyTorch installation')
+    return requested
 
 
 def digest_file(path):
@@ -37,141 +45,116 @@ def atomic_audio(path, samples, subtype='FLOAT'):
         Path(temporary).unlink(missing_ok=True)
 
 
-def frame_durations(phones, total):
-    """Exact frame budget; every phoneme gets at least one frame."""
-    if total < len(phones):
-        raise ValueError(f'Syllable too short for {len(phones)} phonemes ({total} audio frames)')
-    vowels = [i for i, p in enumerate(phones) if p in VOWELS]
-    if not vowels:
-        raise ValueError('A sung syllable needs at least one vowel')
-    weights = np.array([0 if p in VOWELS else .065 if p in ('s', 'sh', 'f', 'th', 'ch') else .045 for p in phones], dtype=float)
-    weights *= min(1., total * DT * .4 / max(weights.sum(), .001))
-    remaining = total * DT - weights.sum()
-    for j, i in enumerate(vowels):
-        weights[i] = remaining * ((.3 if j == 0 else .7) if len(vowels) == 2 else 1 / len(vowels))
-    # Apportion the frames remaining after the one-frame minimum.
-    exact = weights / weights.sum() * (total - len(phones))
-    result = np.floor(exact).astype(np.int64) + 1
-    for i in np.argsort(-(exact - np.floor(exact)), kind='stable')[:total - int(result.sum())]:
-        result[i] += 1
-    return result.tolist()
+def english_phone(phone):
+    if phone == 'ax':
+        return 'AH0'
+    return phone.upper() + ('1' if phone in VOWELS else '')
+
+
+def check_note_duration(group, part):
+    # 20 ms per frame. Each note carries its phones and BOW/SEP/EOW markers.
+    for start, end, _ in group['notes']:
+        if (end - start) * 50 + 1e-7 < len(group['phonemes']) + 3:
+            raise ValueError(f'{part}: note too short for its SoulX phonemes')
+
+
+def metadata(groups):
+    """Convert timed syllables to SoulX note tokens; preserve melismas and rests."""
+    start = groups[0]['notes'][0][0]
+    cursor = start
+    rows = []
+    for group in groups:
+        token = 'en_' + '-'.join(english_phone(p) for p in group['phonemes'])
+        for i, (a, b, midi) in enumerate(group['notes']):
+            if a - cursor > 1e-7:
+                rows.append((a - cursor, '<SP>', 0, 1))
+            rows.append((b - a, token, midi, 2 if i == 0 else 3))
+            cursor = b
+    return {'index': 'phrase', 'language': 'English', 'time': [0, (cursor-start)*1000],
+            'duration': ' '.join(str(r[0]) for r in rows),
+            'phoneme': ' '.join(r[1] for r in rows),
+            'note_pitch': ' '.join(str(r[2]) for r in rows),
+            'note_type': ' '.join(str(r[3]) for r in rows)}
 
 
 class Renderer:
-    def __init__(self, voice, cache, threads=None, effort='standard', style='fresh', seed=42, phrase_seconds=13., gender=0., velocity=1.):
-        import onnxruntime as ort
-        self.ort = ort
-        threads = default_threads() if threads is None else threads
+    def __init__(self, voice, cache, threads=None, effort='standard', seed=42,
+                 phrase_seconds=13., device='auto'):
+        import torch
+        device = select_device(device)
         if not np.isfinite(phrase_seconds) or not 1 <= phrase_seconds <= 60:
             raise ValueError('phrase-seconds must be between 1 and 60')
-        if not np.isfinite(gender) or not -5 <= gender <= 5:
-            raise ValueError('gender must be between -5 and 5 (timbre shift, not note transposition)')
-        if not np.isfinite(velocity) or not .5 <= velocity <= 2:
-            raise ValueError('velocity must be between 0.5 and 2')
-        self.phrase_seconds = phrase_seconds
+        threads = default_threads() if threads is None else threads
+        if threads < 1:
+            raise ValueError('threads must be positive')
         self.root = Path(voice)
         self.cache = Path(cache)
         self.cache.mkdir(parents=True, exist_ok=True)
-        if effort not in EFFORT_SPEEDUPS:
-            raise ValueError('effort must be low, standard, high or max')
-        speedup = EFFORT_SPEEDUPS[effort]
-        if threads < 1:
-            raise ValueError('threads must be positive')
-        if style not in ('fresh', 'disco', 'electric', 'vinyl', 'cetera', 'mystic', 'falsetto'):
-            raise ValueError('Unknown TIGER voice style')
-        files = ['dsacoustic/phonemes.txt', 'dsacoustic/tiger_acou.onnx',
-                 f'dsacoustic/tiger_{style}.emb', 'dsvocoder/tgm_hifigan.onnx']
-        for name in files:
-            if not (self.root / name).is_file():
-                raise ValueError(f'Missing voice asset: {self.root / name}. Run download-voice or set --voice.')
-        self.fingerprint = {name: digest_file(self.root / name) for name in files}
-        self.settings = {'version': RENDER_VERSION, 'effort': effort, 'speedup': speedup, 'style': style, 'seed': seed,
-                         'onnxruntime': ort.__version__, 'threads': threads, 'device': 'cpu',
-                         'phrase_seconds': phrase_seconds, 'gender': gender, 'velocity': velocity}
-        self.phones = {p.strip(): i for i, p in enumerate((self.root / files[0]).read_text().splitlines())}
-        self.embedding = np.fromfile(self.root / files[2], dtype=np.float32)
-        if self.embedding.shape != (256,):
-            raise ValueError('Expected TIGER 256-element speaker embedding')
-        self.options = ort.SessionOptions()
-        self.options.intra_op_num_threads = threads
-        self.options.inter_op_num_threads = 1
-        ort.disable_telemetry_events()
-        self.acoustic = self.vocoder = None
+        self.phrase_seconds = phrase_seconds
+        self.settings = dict(version=3, effort=effort, steps=EFFORT_STEPS[effort], seed=seed,
+                             device=device, torch=torch.__version__, threads=threads,
+                             phrase_seconds=phrase_seconds)
+        if device == 'cuda':
+            self.settings['gpu'] = torch.cuda.get_device_name()
+        self.fingerprint = {}
+        for name in ('model.pt', 'en_prompt.wav', 'en_prompt.json'):
+            path = self.root / name
+            if not path.is_file():
+                raise ValueError(f'Missing {path}. Run autotrack download-voice or set --voice.')
+            self.fingerprint[name] = digest_file(path)
+        self.phones = set(json.loads((MODEL_FILES / 'phone_set.json').read_text()))
+        self.model = None
         self.hits = self.misses = 0
 
     def check_phones(self, score):
-        unknown = sorted({p for groups in score['parts'].values() for g in groups for p in g['phonemes']} - self.phones.keys())
-        if unknown:
-            raise ValueError(f'Voice does not support phonemes: {", ".join(unknown)}')
+        for groups in score['parts'].values():
+            for g in groups:
+                for p in g['phonemes']:
+                    if 'en_' + english_phone(p) not in self.phones:
+                        raise ValueError(f'Unsupported SoulX phoneme: {p}')
 
     def sessions(self):
-        if self.acoustic is None:
-            self.acoustic = self.ort.InferenceSession(str(self.root / 'dsacoustic/tiger_acou.onnx'), self.options, providers=['CPUExecutionProvider'])
-            self.vocoder = self.ort.InferenceSession(str(self.root / 'dsvocoder/tgm_hifigan.onnx'), self.options, providers=['CPUExecutionProvider'])
+        if self.model is not None:
+            return
+        import torch
+        from .soulx.model import load_model
+        from .soulx.processor import DataProcessor
 
+        device = self.settings['device']
+        torch.set_num_threads(self.settings['threads'])
+        self.processor = DataProcessor(hop_size=480, sample_rate=24000, device=device,
+                                       phoneset_path=MODEL_FILES / 'phone_set.json')
+        self.model = load_model(self.root / 'model.pt', device)
+        prompt = json.loads((self.root / 'en_prompt.json').read_text())
+        if not prompt:
+            raise ValueError('Prompt metadata is empty')
+        self.prompt = self.processor.process(prompt[0], str(self.root / 'en_prompt.wav'))
 
     def chunk(self, groups):
-        self.sessions()
         key = hashlib.sha256(json.dumps([self.fingerprint, self.settings, groups], sort_keys=True).encode()).hexdigest()
         path = self.cache / (key + '.wav')
         start, end = groups[0]['notes'][0][0], groups[-1]['notes'][-1][1]
         length = round(end * SR) - round(start * SR)
         if path.exists():
             try:
-                wave, sample_rate = sf.read(path)
-                if sample_rate == SR and wave.ndim == 1 and len(wave) == length and np.isfinite(wave).all():
+                wave, rate = sf.read(path)
+                if rate == SR and wave.ndim == 1 and len(wave) == length and np.isfinite(wave).all():
                     self.hits += 1
                     return start, wave
             except (RuntimeError, sf.LibsndfileError):
                 pass
-        self.ort.set_seed(self.settings['seed'])
-        pad = .18
-        n = round((end - start + 2 * pad) / DT)
-        tt = np.arange(n) * DT
-        pitch = np.full(n, -1.)
-        tokens, durations = [], []
-        cursor = 0
-        def append(phone, frames):
-            nonlocal cursor
-            if frames:
-                tokens.append(self.phones[phone])
-                durations.append(frames)
-                cursor += frames
-        append('SP', round(pad / DT))
-        for group in groups:
-            a = round((group['notes'][0][0] - start + pad) / DT)
-            b = round((group['notes'][-1][1] - start + pad) / DT)
-            if a < cursor:
-                raise ValueError('Overlapping phoneme timing after quantization')
-            append('SP', a - cursor)
-            for phone, frames in zip(group['phonemes'], frame_durations(group['phonemes'], b - a)):
-                append(phone, frames)
-            for na, nb, midi in group['notes']:
-                pitch[(tt >= na - start + pad) & (tt < nb - start + pad)] = midi
-        append('SP', n - cursor)
-        if sum(durations) != n:
-            raise ValueError('Internal phoneme timing mismatch')
-        voiced = pitch >= 0
-        indices = np.flatnonzero(voiced)
-        filled = np.interp(np.arange(n), indices, pitch[indices])
-        smooth = gaussian_filter1d(filled, .022 / DT)
-        vibrato = .10 * np.sin(2 * np.pi * 5.2 * tt + .3) * np.minimum(tt / .4, 1)
-        f0 = (440 * 2 ** ((smooth + vibrato - 69) / 12)).astype(np.float32)
-        f0[~voiced] = 0
-        inputs = {'tokens': np.array([tokens], np.int64), 'durations': np.array([durations], np.int64),
-                  'f0': f0[None, :], 'gender': np.full((1, n), self.settings['gender'], np.float32), 'velocity': np.full((1, n), self.settings['velocity'], np.float32),
-                  'spk_embed': np.broadcast_to(self.embedding, (1, n, 256)).copy(),
-                  'depth': np.array(400, np.int64), 'speedup': np.array(self.settings['speedup'], np.int64)}
-        mel = self.acoustic.run(None, inputs)[0]
-        wave = self.vocoder.run(None, {'mel': mel, 'f0': f0[None, :]})[0][0]
-        trim = round(pad * SR)
-        wave = wave[trim:trim + length]
-        wave = np.pad(wave, (0, max(0, length - len(wave))))
-        fade = min(round(.012 * SR), len(wave) // 3)
-        wave[:fade] *= np.linspace(0, 1, fade)
-        wave[-fade:] *= np.linspace(1, 0, fade)
-        if not np.isfinite(wave).all():
-            raise ValueError('Non-finite model output')
+        self.sessions()
+        import torch
+        torch.manual_seed(self.settings['seed'])
+        target = self.processor.process(metadata(groups), None)
+        with torch.inference_mode():
+            wave = self.model(self.prompt, target, self.settings['steps']).flatten().cpu().numpy()
+        rate = self.processor.sample_rate
+        divisor = gcd(SR, rate)
+        wave = resample_poly(wave, SR // divisor, rate // divisor)
+        if not len(wave) or not np.isfinite(wave).all():
+            raise ValueError('Invalid SoulX model output')
+        wave = np.pad(wave[:length], (0, max(0, length-len(wave))))
         atomic_audio(path, wave)
         self.misses += 1
         return start, wave

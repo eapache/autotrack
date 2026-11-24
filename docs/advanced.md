@@ -134,37 +134,22 @@ excluding the pitch cue and count-in. See [score format](score-format.md).
 
 ## Synthesis settings
 
-`--effort` increases the number of diffusion steps, while keeping the song’s
-timing unchanged:
+SoulX-Singer renders the written notes and rhythms using an aligned English
+singing reference. The four effort levels use 16, 32, 64, and 128 diffusion
+steps respectively. The default is `standard` (32 steps).
 
-| Effort | Diffusion steps | Internal model stride |
-| --- | ---: | ---: |
-| low | 10 | 40 |
-| standard | 20 | 20 |
-| high | 40 | 10 |
-| max | 80 | 5 |
-
-More effort costs more time; it does not correct notation or guarantee better
-pronunciation.
-
-All four parts use the same selected `--style`: fresh, disco, electric, vinyl,
-cetera, mystic, or falsetto. Further controls are grouped under Advanced settings
-in `autotrack run --help`:
-
-- `--threads N`: CPU threads; the default respects CPU affinity and caps at eight.
-- `--phrase-seconds N`: grouping limit, 1–60 seconds (default 13). Gaps over 0.4 s
-  end a phrase. Syllables are never split and can last up to 30 seconds.
-- `--gender N`: model timbre shift, −5 to +5; does not transpose notes.
-- `--velocity N`: phoneme speed conditioning, 0.5–2; preserves score timing.
-- `--seed N`: default 42; results may vary between runtime versions/hardware.
-
-Pitch smoothing and vibrato are fixed. Model depth is 400. Inference runs on CPU.
+- `--device auto` uses CUDA when available and CPU otherwise. Use `--device cpu`
+  or `--device cuda` to choose explicitly. PyTorch uses the first visible GPU.
+- `--threads N` controls CPU threads. The default respects CPU affinity and caps at eight.
+- `--phrase-seconds N` sets the grouping limit (1–60 seconds, default 13). Gaps
+  over 0.4 seconds end a phrase. Syllables can last up to 30 seconds.
+- `--seed N` sets the random seed (default 42). Results can vary by device and runtime.
 
 ## Installation and diagnostics
 
-`autotrack doctor` reports ONNX Runtime and FFmpeg availability. The voice is
-installed under `~/.local/share/autotrack/tiger`, respecting `XDG_DATA_HOME`.
-Use `download-voice models/tiger` and `--voice models/tiger` for a custom location.
-An existing official ZIP can be installed with `download-voice --archive FILE`.
-Downloads are checksum-verified; inference is offline. Model weights are not
-bundled with the package. CI runs model-free tests on Python 3.11 and 3.14.
+`autotrack doctor` reports the PyTorch version, selected device, and FFmpeg path.
+`autotrack download-voice` installs the checkpoint and aligned prompt under
+`~/.local/share/autotrack/soulx-singer`, respecting `XDG_DATA_HOME`. For a
+custom location, use `download-voice models/soulx` and `run --voice models/soulx`.
+Downloads are checksum-verified. Rendering works offline. When upgrading from
+TIGER, rerun `pip install .` and `autotrack download-voice`.

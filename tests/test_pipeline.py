@@ -8,7 +8,8 @@ import subprocess
 from pathlib import Path
 import numpy as np
 from autotrack.score import PARTS, Timeline, validate
-from autotrack.render import frame_durations
+from autotrack.render import check_note_duration, metadata, select_device
+from unittest.mock import patch
 from autotrack.mix import split_mix, export
 from autotrack.musicxml import read, describe, import_score
 
@@ -40,13 +41,39 @@ class ScoreTests(unittest.TestCase):
         validate(s)
 
     def test_short_syllable_fails_instead_of_extending_timing(self):
-        with self.assertRaises(ValueError):
-            frame_durations(['s', 't', 'r', 'eh', 'ng', 'th', 's'], 5)
-        self.assertEqual(frame_durations(['ow'], 20), [20])
-        durations = frame_durations(['k', 'r', 'ih', 's'], 24)
-        self.assertEqual(sum(durations), 24)
-        self.assertGreaterEqual(min(durations), 1)
-        self.assertGreater(durations[2], durations[0])
+        group = {'phonemes': ['s', 't', 'r', 'eh', 'ng', 'th', 's'], 'notes': [(0., .1, 60)]}
+        with self.assertRaisesRegex(ValueError, 'note too short'):
+            check_note_duration(group, 'lead')
+        group['notes'] = [(0., .2, 60)]
+        check_note_duration(group, 'lead')
+
+    def test_soulx_note_tokens_preserve_melisma_rest_and_pitches(self):
+        notes = metadata([{'phonemes': ['d', 'uw'], 'notes': [(1., 1.5, 64), (1.5, 2., 65)]},
+                          {'phonemes': ['ax'], 'notes': [(2.25, 3., 62)]}])
+        self.assertEqual(notes['phoneme'], 'en_D-UW1 en_D-UW1 <SP> en_AH0')
+        self.assertEqual(notes['note_type'], '2 3 1 2')
+        self.assertEqual(notes['note_pitch'], '64 65 0 62')
+        self.assertEqual(notes['duration'], '0.5 0.5 0.25 0.75')
+
+    def test_subframe_rest_preserves_adjacent_note_tokens(self):
+        from autotrack.render import MODEL_FILES
+        from autotrack.soulx.processor import DataProcessor
+        processor = DataProcessor(480, 24000, MODEL_FILES / 'phone_set.json', 'cpu')
+        group = {'phonemes': ['uw'], 'notes': [(0., .5, 60)]}
+        following = dict(group, notes=[(.5001, 1., 62)])
+        item = processor.process(metadata([group, following]))
+        pitches = item['note_pitch'][0][item['mel2note'][0]]
+        self.assertEqual(pitches[24].item(), 60)
+        self.assertEqual(pitches[25].item(), 62)
+
+    def test_device_selection(self):
+        with patch('torch.cuda.is_available', return_value=False):
+            self.assertEqual(select_device(), 'cpu')
+            with self.assertRaisesRegex(ValueError, 'CUDA is unavailable'):
+                select_device('cuda')
+        with patch('torch.cuda.is_available', return_value=True):
+            self.assertEqual(select_device(), 'cuda')
+            self.assertEqual(select_device('cpu'), 'cpu')
 
 
 class MixTests(unittest.TestCase):

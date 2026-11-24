@@ -16,7 +16,7 @@ pip install .
 autotrack download-voice
 ```
 
-The voice download is about 540 MB and only needs to be done once. After that,
+The voice download is about 2.8 GB and only needs to be done once. After that,
 you can make tracks offline. In a new terminal, run `. .venv/bin/activate` again
 before using Autotrack.
 
@@ -51,7 +51,7 @@ autotrack run examples/four_part_demo.musicxml \
 | --- | --- |
 | `--out tracks/my-song` | Choose where to save the MP3s |
 | `--effort high` | Spend more time refining the singing: `low`, `standard` (default), `high`, or `max` |
-| `--style vinyl` | Try a different voice style; the default is `fresh` |
+| `--device cpu` | Force CPU rendering. The default uses CUDA when PyTorch detects a compatible GPU. |
 | `--pitch Bb3` | Set the opening pitch yourself |
 | `--target-side right` | Put your part in the right ear |
 | `--dominance-db 5` | Make your part more prominent; the default is 3 |
@@ -88,7 +88,8 @@ Tests need FFmpeg but do not download a voice. For pinned dependencies, install
 - [Advanced options, score preparation, and working files](docs/advanced.md)
 - [Editable score format](docs/score-format.md)
 
-The code is MIT-licensed. The separately downloaded TIGER voice is by
-**tigermeat / neutrogic**; commercial use requires their permission. See the
-[voice project](https://github.com/spicytigermeat/tiger_diffsinger) and its installed
-`extra/LICENSE.md`. Use sheet music and arrangements you have permission to use.
+Autotrack is MIT-licensed. SoulX-Singer supplies the singing model and English
+reference recording. Its inference code and weights use the Apache 2.0 license.
+See the [SoulX-Singer project](https://github.com/Soul-AILab/SoulX-Singer) and
+[bundled license](autotrack/soulx/LICENSE). Use sheet music and arrangements you
+have permission to use.

@@ -10,7 +10,7 @@ readme = "README.md"
 requires-python = ">=3.11"
 license = "MIT"
 authors = [{name = "Evan Huus"}]
-dependencies = ["numpy>=2.3,<3", "scipy>=1.16,<2", "soundfile>=0.14,<1", "music21>=10.5,<11", "cmudict>=1.1,<2", "onnxruntime>=1.32,<2"]
+dependencies = ["numpy>=2.3,<3", "scipy>=1.16,<2", "soundfile>=0.14,<1", "music21>=10.5,<11", "cmudict>=1.1,<2", "torch==2.11.0"]
 
 [project.urls]
 Repository = "https://github.com/eapache/autotrack"
@@ -21,3 +21,6 @@ autotrack = "autotrack.__main__:main"
 
 [tool.setuptools.packages.find]
 include = ["autotrack*"]
+
+[tool.setuptools.package-data]
+"autotrack.soulx" = ["*.json", "LICENSE", "NOTICE"]
